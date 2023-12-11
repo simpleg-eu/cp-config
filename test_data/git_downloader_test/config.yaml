@@ -1,0 +1,5 @@
+Git:
+  Repository: "https://github.com/simpleg-eu/cp-config-files.git"
+  UsernameSecret: "89550bb0-6d76-467c-92c8-b0c601080978"
+  PasswordSecret: "2d4c986f-3064-44a1-a4c3-b0c60108308c"
+Stage: "dummy"
