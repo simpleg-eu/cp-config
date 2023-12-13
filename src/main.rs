@@ -10,6 +10,8 @@ pub mod error;
 mod error_kind;
 pub mod git_downloader;
 pub mod microconfig_config_builder;
+pub mod packager;
+pub mod zip_packager;
 
 fn main() {
     println!("Hello, world!");

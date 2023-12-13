@@ -12,3 +12,5 @@ cp-core = "0.2.4"
 git2 = "0.18.1"
 
 log = { version = "0.4", features = [] }
+
+zip = "0.6"
