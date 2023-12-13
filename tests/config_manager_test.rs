@@ -11,6 +11,8 @@ use cp_config::config_builder::ConfigBuilder;
 use cp_config::config_manager::ConfigManager;
 use cp_config::downloader::Downloader;
 use cp_config::microconfig_config_builder::MicroconfigConfigBuilder;
+use cp_config::packager::Packager;
+use cp_config::zip_packager::ZipPackager;
 
 use crate::test_base::get_git_downloader;
 
@@ -29,8 +31,14 @@ pub fn setup_builds_all_environments() {
     let downloader: Arc<dyn Downloader> = Arc::new(get_git_downloader(get_test_data_path(file!())));
     let builder: Arc<dyn ConfigBuilder> = Arc::new(MicroconfigConfigBuilder::default());
     let working_path: PathBuf = WORKING_DIR.into();
-    let config_manager =
-        ConfigManager::new(environments.clone(), downloader, builder, working_path);
+    let packager: Arc<dyn Packager> = Arc::new(ZipPackager::new(working_path.clone()));
+    let config_manager = ConfigManager::new(
+        environments.clone(),
+        downloader,
+        builder,
+        packager,
+        working_path,
+    );
 
     let setup_result = config_manager.setup("dummy".to_string());
 

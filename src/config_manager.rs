@@ -10,11 +10,13 @@ use cp_core::error::Error;
 use crate::cleaner::clean_working_directory;
 use crate::config_builder::ConfigBuilder;
 use crate::downloader::Downloader;
+use crate::packager::Packager;
 
 pub struct ConfigManager {
     environments: Vec<String>,
     downloader: Arc<dyn Downloader>,
     builder: Arc<dyn ConfigBuilder>,
+    packager: Arc<dyn Packager>,
     working_path: PathBuf,
 }
 
@@ -23,12 +25,14 @@ impl ConfigManager {
         environments: Vec<String>,
         downloader: Arc<dyn Downloader>,
         builder: Arc<dyn ConfigBuilder>,
+        packager: Arc<dyn Packager>,
         working_path: PathBuf,
     ) -> Self {
         Self {
             environments,
             downloader,
             builder,
+            packager,
             working_path,
         }
     }
@@ -47,6 +51,10 @@ impl ConfigManager {
         }
 
         Ok(())
+    }
+
+    pub fn get_config(&self, environment: &str, component: &str) -> Result<Vec<u8>, Error> {
+        Ok(Vec::new())
     }
 }
 
