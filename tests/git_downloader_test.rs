@@ -4,10 +4,8 @@
 
 mod test_base;
 
-use cp_core::config_reader::ConfigReader;
 use cp_core::error::Error;
-use cp_core::secrets::bitwarden_secrets_manager::BitwardenSecretsManager;
-use cp_core::secrets::secrets_manager::SecretsManager;
+
 use cp_core::test_base::get_test_data_path;
 
 use crate::test_base::get_git_downloader;
