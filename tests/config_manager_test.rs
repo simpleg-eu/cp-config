@@ -22,28 +22,12 @@ const WORKING_DIR: &str = "./working_dir";
 
 #[test]
 pub fn setup_builds_all_environments() {
-    let environments: Vec<String> = vec![
-        "dummy".to_string(),
-        "development".to_string(),
-        "staging".to_string(),
-        "production".to_string(),
-    ];
-    let downloader: Arc<dyn Downloader> = Arc::new(get_git_downloader(get_test_data_path(file!())));
-    let builder: Arc<dyn ConfigBuilder> = Arc::new(MicroconfigConfigBuilder::default());
-    let working_path: PathBuf = WORKING_DIR.into();
-    let packager: Arc<dyn Packager> = Arc::new(ZipPackager::new(working_path.clone()));
-    let config_manager = ConfigManager::new(
-        environments.clone(),
-        downloader,
-        builder,
-        packager,
-        working_path,
-    );
+    let config_manager = get_config_manager();
 
     let setup_result = config_manager.setup("dummy".to_string());
 
     assert!(setup_result.is_ok());
-    for environment in environments {
+    for environment in get_environments() {
         assert!(std::fs::metadata(format!("{}/{}", WORKING_DIR, environment)).is_ok());
         assert!(std::fs::metadata(format!(
             "{}/{}/dummy/application.yaml",
@@ -51,4 +35,43 @@ pub fn setup_builds_all_environments() {
         ))
         .is_ok());
     }
+}
+
+#[test]
+pub fn get_config_returns_bytes_of_zip_file() {
+    let config_manager = get_config_manager();
+    config_manager.setup("dummy".to_string());
+
+    let result = config_manager.get_config("dummy", "dummy");
+
+    match result {
+        Ok(data) => assert!(!data.is_empty()),
+        Err(error) => {
+            panic!("{}", error);
+        }
+    }
+}
+
+fn get_environments() -> Vec<String> {
+    vec![
+        "dummy".to_string(),
+        "development".to_string(),
+        "staging".to_string(),
+        "production".to_string(),
+    ]
+}
+
+fn get_config_manager() -> ConfigManager {
+    let downloader: Arc<dyn Downloader> = Arc::new(get_git_downloader(get_test_data_path(file!())));
+    let builder: Arc<dyn ConfigBuilder> = Arc::new(MicroconfigConfigBuilder::default());
+    let working_path: PathBuf = WORKING_DIR.into();
+    let packager: Arc<dyn Packager> = Arc::new(ZipPackager::new(working_path.clone()));
+
+    ConfigManager::new(
+        get_environments(),
+        downloader,
+        builder,
+        packager,
+        working_path,
+    )
 }

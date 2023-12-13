@@ -7,4 +7,5 @@ use std::path::Path;
 
 pub trait Packager {
     fn package(&self, environment: &str, component: &str, target_file: &Path) -> Result<(), Error>;
+    fn extension(&self) -> String;
 }

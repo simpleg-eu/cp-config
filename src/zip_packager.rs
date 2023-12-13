@@ -68,4 +68,8 @@ impl Packager for ZipPackager {
 
         Ok(())
     }
+
+    fn extension(&self) -> String {
+        "zip".to_string()
+    }
 }
