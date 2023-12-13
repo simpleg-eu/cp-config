@@ -4,6 +4,7 @@
 
 pub mod cleaner;
 pub mod config_builder;
+pub mod config_manager;
 pub mod downloader;
 pub mod error;
 mod error_kind;

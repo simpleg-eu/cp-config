@@ -6,7 +6,7 @@ use std::path::PathBuf;
 
 use cp_core::error::Error;
 
-pub fn clean_working_directory(working_directory: PathBuf) -> Result<(), Error> {
+pub fn clean_working_directory(working_directory: &PathBuf) -> Result<(), Error> {
     match std::fs::remove_dir_all(working_directory.as_path()) {
         Ok(_) => Ok(()),
         Err(error) => Err(error.into()),

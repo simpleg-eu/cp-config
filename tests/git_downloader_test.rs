@@ -2,32 +2,22 @@
  * Copyright (c) Gabriel Amihalachioaie, SimpleG 2023.
  */
 
+mod test_base;
+
 use cp_core::config_reader::ConfigReader;
 use cp_core::error::Error;
 use cp_core::secrets::bitwarden_secrets_manager::BitwardenSecretsManager;
 use cp_core::secrets::secrets_manager::SecretsManager;
 use cp_core::test_base::get_test_data_path;
 
+use crate::test_base::get_git_downloader;
 use cp_config::downloader::Downloader;
 use cp_config::git_downloader::GitDownloader;
 
 fn download() -> (Result<(), Error>, String, bool, bool) {
     let working_directory: &str = "./working-dir";
-    let mut path = get_test_data_path(file!());
-    path.push("config.yaml");
-    let config_reader: ConfigReader = ConfigReader::default();
-    let config = config_reader.read(path).unwrap();
-    let git_config = config.get("Git").unwrap();
-    let repository = git_config.get("Repository").unwrap().as_str().unwrap();
-    let username_secret = git_config.get("UsernameSecret").unwrap().as_str().unwrap();
-    let password_secret = git_config.get("PasswordSecret").unwrap().as_str().unwrap();
-    let secrets_manager =
-        BitwardenSecretsManager::new(std::env::var("SECRETS_MANAGER_ACCESS_TOKEN").unwrap());
-    let username = secrets_manager.get_secret(username_secret).unwrap();
-    let password = secrets_manager.get_secret(password_secret).unwrap();
-    let downloader = GitDownloader::new(repository.to_string(), username, password);
-    std::fs::create_dir("./working-dir/");
-
+    std::fs::create_dir(working_directory);
+    let downloader: GitDownloader = get_git_downloader(get_test_data_path(file!()));
     let result = downloader.download(
         format!("{}/download", working_directory).into(),
         "dummy".to_string(),
