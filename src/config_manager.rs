@@ -40,10 +40,10 @@ impl ConfigManager {
         }
     }
 
-    pub fn setup(&self, stage: String) -> Result<(), Error> {
+    pub fn setup(&self, stage: &str) -> Result<(), Error> {
         let mut download_path = self.working_path.clone();
         download_path.push("download");
-        self.downloader.download(download_path.clone(), stage)?;
+        self.downloader.download(&download_path, stage)?;
 
         for environment in self.environments.as_slice() {
             let mut target_path = self.working_path.clone();

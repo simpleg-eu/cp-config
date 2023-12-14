@@ -5,6 +5,7 @@
 mod test_base;
 
 use cp_core::error::Error;
+use std::path::PathBuf;
 
 use cp_core::test_base::get_test_data_path;
 
@@ -16,10 +17,8 @@ fn download() -> (Result<(), Error>, String, bool, bool) {
     let working_directory: &str = "./working-dir";
     std::fs::create_dir(working_directory);
     let downloader: GitDownloader = get_git_downloader(get_test_data_path(file!()));
-    let result = downloader.download(
-        format!("{}/download", working_directory).into(),
-        "dummy".to_string(),
-    );
+    let download_path: PathBuf = format!("{}/download", working_directory).into();
+    let result = downloader.download(&download_path, "dummy");
     let expected_file_exists: bool = std::fs::metadata(format!(
         "{}/download/dummy/this_file_must_exist.yaml",
         working_directory

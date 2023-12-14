@@ -32,7 +32,7 @@ impl GitDownloader {
         }
     }
 
-    fn pull(&self, target_path: PathBuf, stage: String) -> Result<(), Error> {
+    fn pull(&self, target_path: &PathBuf, stage: &str) -> Result<(), Error> {
         let repository = match Repository::open(target_path) {
             Ok(repository) => repository,
             Err(error) => return Err(ConfigError::from(error).into()),
@@ -43,7 +43,7 @@ impl GitDownloader {
             Err(error) => return Err(ConfigError::from(error).into()),
         };
 
-        let fetch_commit = self.fetch(&repository, &[stage.as_str()], &mut remote)?;
+        let fetch_commit = self.fetch(&repository, &[stage], &mut remote)?;
         self.merge(&repository, &stage, fetch_commit)?;
 
         Ok(())
@@ -241,14 +241,14 @@ impl GitDownloader {
         remote_callbacks
     }
 
-    fn clone(&self, target_path: PathBuf, stage: String) -> Result<(), Error> {
+    fn clone(&self, target_path: &PathBuf, stage: &str) -> Result<(), Error> {
         let remote_callback = self.get_remote_callback();
         let mut fetch_options = FetchOptions::new();
         fetch_options.remote_callbacks(remote_callback);
 
         let mut builder = RepoBuilder::new();
         builder.fetch_options(fetch_options);
-        builder.branch(stage.as_str());
+        builder.branch(stage);
 
         match builder.clone(self.repository_url.as_str(), target_path.as_path()) {
             Ok(_) => (),
@@ -265,7 +265,7 @@ impl GitDownloader {
 }
 
 impl Downloader for GitDownloader {
-    fn download(&self, target_path: PathBuf, stage: String) -> Result<(), Error> {
+    fn download(&self, target_path: &PathBuf, stage: &str) -> Result<(), Error> {
         let mut possible_git_repository_path = target_path.clone();
         possible_git_repository_path.push(".git");
 

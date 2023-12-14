@@ -7,5 +7,5 @@ use std::path::PathBuf;
 use cp_core::error::Error;
 
 pub trait Downloader {
-    fn download(&self, target_path: PathBuf, stage: String) -> Result<(), Error>;
+    fn download(&self, target_path: &PathBuf, stage: &str) -> Result<(), Error>;
 }

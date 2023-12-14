@@ -24,7 +24,7 @@ const WORKING_DIR: &str = "./working_dir";
 pub fn setup_builds_all_environments() {
     let config_manager = get_config_manager();
 
-    let setup_result = config_manager.setup("dummy".to_string());
+    let setup_result = config_manager.setup("dummy");
 
     assert!(setup_result.is_ok());
     for environment in get_environments() {
@@ -40,7 +40,9 @@ pub fn setup_builds_all_environments() {
 #[test]
 pub fn get_config_returns_bytes_of_zip_file() {
     let config_manager = get_config_manager();
-    config_manager.setup("dummy".to_string());
+    config_manager
+        .setup("dummy")
+        .expect("failed to setup 'dummy' stage");
 
     let result = config_manager.get_config("dummy", "dummy");
 
