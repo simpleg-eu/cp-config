@@ -6,6 +6,12 @@ use std::path::Path;
 
 use cp_core::error::Error;
 
+///
+/// Deletes the specified working directory.
+///
+/// # Arguments
+///
+/// * `working_directory` - Directory to be entirely removed.
 pub fn clean_working_directory(working_directory: &Path) -> Result<(), Error> {
     match std::fs::remove_dir_all(working_directory) {
         Ok(_) => Ok(()),
@@ -15,8 +21,9 @@ pub fn clean_working_directory(working_directory: &Path) -> Result<(), Error> {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::cleaner::clean_working_directory;
     use std::path::Path;
+
+    use crate::cleaner::clean_working_directory;
 
     #[test]
     pub fn clean_working_directory_deletes_specified_directory() {
