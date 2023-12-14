@@ -2,12 +2,12 @@
  * Copyright (c) Gabriel Amihalachioaie, SimpleG 2023.
  */
 
-use std::path::PathBuf;
+use std::path::Path;
 
 use cp_core::error::Error;
 
-pub fn clean_working_directory(working_directory: &PathBuf) -> Result<(), Error> {
-    match std::fs::remove_dir_all(working_directory.as_path()) {
+pub fn clean_working_directory(working_directory: &Path) -> Result<(), Error> {
+    match std::fs::remove_dir_all(working_directory) {
         Ok(_) => Ok(()),
         Err(error) => Err(error.into()),
     }
