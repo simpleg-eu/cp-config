@@ -44,7 +44,7 @@ impl GitDownloader {
         };
 
         let fetch_commit = self.fetch(&repository, &[stage], &mut remote)?;
-        self.merge(&repository, &stage, fetch_commit)?;
+        self.merge(&repository, stage, fetch_commit)?;
 
         Ok(())
     }
