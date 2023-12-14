@@ -265,6 +265,13 @@ impl GitDownloader {
 }
 
 impl Downloader for GitDownloader {
+    ///
+    /// Downloads the configuration files from the previously specified repository.
+    ///
+    /// # Arguments
+    ///
+    /// * `target_path` - Path where the configuration files will be downloaded into.
+    /// * `stage` - Git branch to be used for retrieving the configuration files.
     fn download(&self, target_path: &Path, stage: &str) -> Result<(), Error> {
         let mut possible_git_repository_path = PathBuf::from(target_path);
         possible_git_repository_path.push(".git");
