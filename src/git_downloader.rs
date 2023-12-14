@@ -32,7 +32,7 @@ impl GitDownloader {
         }
     }
 
-    fn pull(&self, target_path: &PathBuf, stage: &str) -> Result<(), Error> {
+    fn pull(&self, target_path: &Path, stage: &str) -> Result<(), Error> {
         let repository = match Repository::open(target_path) {
             Ok(repository) => repository,
             Err(error) => return Err(ConfigError::from(error).into()),
@@ -265,8 +265,8 @@ impl GitDownloader {
 }
 
 impl Downloader for GitDownloader {
-    fn download(&self, target_path: &PathBuf, stage: &str) -> Result<(), Error> {
-        let mut possible_git_repository_path = target_path.clone();
+    fn download(&self, target_path: &Path, stage: &str) -> Result<(), Error> {
+        let mut possible_git_repository_path = PathBuf::from(target_path);
         possible_git_repository_path.push(".git");
 
         // check if repository already exists
