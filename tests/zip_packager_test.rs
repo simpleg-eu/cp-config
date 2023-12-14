@@ -20,12 +20,12 @@ pub fn package_creates_zip_containing_configuration_file() {
     let package_file_path: &Path = Path::new("dummy.zip");
     let application_file = "application.yaml";
 
-    zip_packager.package(environment, component, package_file_path);
+    let _ = zip_packager.package(environment, component, package_file_path);
     let package_file_metadata = std::fs::metadata(package_file);
-    unzip_file(package_file, "./");
+    let _ = unzip_file(package_file, "./");
     let config_file_metadata = std::fs::metadata(application_file);
-    std::fs::remove_file(package_file);
-    std::fs::remove_file(application_file);
+    let _ = std::fs::remove_file(package_file);
+    let _ = std::fs::remove_file(application_file);
 
     assert!(package_file_metadata.is_ok());
     assert!(config_file_metadata.is_ok());
