@@ -16,7 +16,7 @@ mod test_base;
 
 fn download() -> (Result<(), Error>, String, bool, bool) {
     let working_directory = format!("./{}", uuid::Uuid::new_v4());
-    std::fs::create_dir_all(&working_directory);
+    let _ = std::fs::create_dir_all(&working_directory);
     let downloader: GitDownloader = get_git_downloader(get_test_data_path(file!()));
     let download_path: PathBuf = format!("{}/download", &working_directory).into();
     let result = downloader.download(&download_path, "dummy");
