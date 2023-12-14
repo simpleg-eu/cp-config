@@ -14,6 +14,28 @@ use crate::test_base::get_git_downloader;
 
 mod test_base;
 
+#[test]
+pub fn download_downloads_expected_files() {
+    let (result, working_directory, expected_file_exists, expected_file_exists_too) = download();
+
+    std::fs::remove_dir_all(working_directory).unwrap();
+    assert!(result.is_ok());
+    assert!(expected_file_exists);
+    assert!(expected_file_exists_too);
+}
+
+#[test]
+pub fn download_twice_succeeds() {
+    let (_, first_working_directory, _, _) = download();
+    let (result, working_directory, expected_file_exists, expected_file_exists_too) = download();
+
+    std::fs::remove_dir_all(first_working_directory).unwrap();
+    std::fs::remove_dir_all(working_directory).unwrap();
+    assert!(result.is_ok());
+    assert!(expected_file_exists);
+    assert!(expected_file_exists_too);
+}
+
 fn download() -> (Result<(), Error>, String, bool, bool) {
     let working_directory = format!("./{}", uuid::Uuid::new_v4());
     let _ = std::fs::create_dir_all(&working_directory);
@@ -37,26 +59,4 @@ fn download() -> (Result<(), Error>, String, bool, bool) {
         expected_file_exists,
         expected_file_exists_too,
     )
-}
-
-#[test]
-pub fn download_downloads_expected_files() {
-    let (result, working_directory, expected_file_exists, expected_file_exists_too) = download();
-
-    std::fs::remove_dir_all(working_directory).unwrap();
-    assert!(result.is_ok());
-    assert!(expected_file_exists);
-    assert!(expected_file_exists_too);
-}
-
-#[test]
-pub fn download_twice_succeeds() {
-    let (_, first_working_directory, _, _) = download();
-    let (result, working_directory, expected_file_exists, expected_file_exists_too) = download();
-
-    std::fs::remove_dir_all(first_working_directory).unwrap();
-    std::fs::remove_dir_all(working_directory).unwrap();
-    assert!(result.is_ok());
-    assert!(expected_file_exists);
-    assert!(expected_file_exists_too);
 }
