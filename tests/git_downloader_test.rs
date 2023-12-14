@@ -2,16 +2,17 @@
  * Copyright (c) Gabriel Amihalachioaie, SimpleG 2023.
  */
 
-mod test_base;
-
-use cp_core::error::Error;
 use std::path::PathBuf;
 
+use cp_core::error::Error;
 use cp_core::test_base::get_test_data_path;
 
-use crate::test_base::get_git_downloader;
 use cp_config::downloader::Downloader;
 use cp_config::git_downloader::GitDownloader;
+
+use crate::test_base::get_git_downloader;
+
+mod test_base;
 
 fn download() -> (Result<(), Error>, String, bool, bool) {
     let working_directory = format!("./{}", uuid::Uuid::new_v4());
@@ -50,7 +51,7 @@ pub fn download_downloads_expected_files() {
 
 #[test]
 pub fn download_twice_succeeds() {
-    let (first_result, first_working_directory, _, _) = download();
+    let (_, first_working_directory, _, _) = download();
     let (result, working_directory, expected_file_exists, expected_file_exists_too) = download();
 
     std::fs::remove_dir_all(first_working_directory).unwrap();
