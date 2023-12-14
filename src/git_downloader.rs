@@ -2,7 +2,7 @@
  * Copyright (c) Gabriel Amihalachioaie, SimpleG 2023.
  */
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use cp_core::error::Error;
 use git2::build::{CheckoutBuilder, RepoBuilder};
@@ -241,7 +241,7 @@ impl GitDownloader {
         remote_callbacks
     }
 
-    fn clone(&self, target_path: &PathBuf, stage: &str) -> Result<(), Error> {
+    fn clone(&self, target_path: &Path, stage: &str) -> Result<(), Error> {
         let remote_callback = self.get_remote_callback();
         let mut fetch_options = FetchOptions::new();
         fetch_options.remote_callbacks(remote_callback);
@@ -250,7 +250,7 @@ impl GitDownloader {
         builder.fetch_options(fetch_options);
         builder.branch(stage);
 
-        match builder.clone(self.repository_url.as_str(), target_path.as_path()) {
+        match builder.clone(self.repository_url.as_str(), target_path) {
             Ok(_) => (),
             Err(error) => {
                 return Err(Error::new(
