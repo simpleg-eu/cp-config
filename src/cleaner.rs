@@ -16,14 +16,15 @@ pub fn clean_working_directory(working_directory: &Path) -> Result<(), Error> {
 #[cfg(test)]
 pub mod tests {
     use crate::cleaner::clean_working_directory;
+    use std::path::Path;
 
     #[test]
     pub fn clean_working_directory_deletes_specified_directory() {
-        std::fs::create_dir("./working_dir").unwrap();
-        std::fs::File::create("./working_dir/example.txt").unwrap();
+        let working_directory = format!("./{}", uuid::Uuid::new_v4());
+        std::fs::create_dir(&working_directory).unwrap();
+        std::fs::File::create(format!("{}/example.txt", working_directory)).unwrap();
+        clean_working_directory(Path::new(&working_directory)).unwrap();
 
-        clean_working_directory("./working_dir".into()).unwrap();
-
-        assert!(std::fs::metadata("./working_dir").is_err());
+        assert!(std::fs::metadata(&working_directory).is_err());
     }
 }
