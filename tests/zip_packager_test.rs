@@ -42,7 +42,7 @@ fn unzip_file(zip_path: &str, extract_path: &str) -> Result<(), Error> {
         if file.is_dir() {
             std::fs::create_dir_all(&output_path)?;
         } else {
-            if let Some(parent_dir) = std::path::Path::new(&output_path).parent() {
+            if let Some(parent_dir) = Path::new(&output_path).parent() {
                 std::fs::create_dir_all(parent_dir)?;
             }
 
