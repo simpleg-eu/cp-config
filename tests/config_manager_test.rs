@@ -20,7 +20,7 @@ mod test_base;
 
 #[test]
 pub fn setup_builds_all_environments() {
-    let working_dir = format!("./{}", uuid::Uuid::new_v4().to_string());
+    let working_dir = format!("./{}", uuid::Uuid::new_v4());
     let config_manager = get_config_manager(working_dir.clone());
 
     let setup_result = config_manager.setup("dummy");
@@ -38,7 +38,7 @@ pub fn setup_builds_all_environments() {
 
 #[test]
 pub fn get_config_returns_bytes_of_zip_file() {
-    let working_dir = format!("./{}", uuid::Uuid::new_v4().to_string());
+    let working_dir = format!("./{}", uuid::Uuid::new_v4());
     let config_manager = get_config_manager(working_dir);
     config_manager
         .setup("dummy")
