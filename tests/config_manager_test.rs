@@ -18,20 +18,19 @@ use crate::test_base::get_git_downloader;
 
 mod test_base;
 
-const WORKING_DIR: &str = "./working_dir";
-
 #[test]
 pub fn setup_builds_all_environments() {
-    let config_manager = get_config_manager();
+    let working_dir = format!("./{}", uuid::Uuid::new_v4().to_string());
+    let config_manager = get_config_manager(working_dir.clone());
 
     let setup_result = config_manager.setup("dummy");
 
     assert!(setup_result.is_ok());
     for environment in get_environments() {
-        assert!(std::fs::metadata(format!("{}/{}", WORKING_DIR, environment)).is_ok());
+        assert!(std::fs::metadata(format!("{}/{}", working_dir, environment)).is_ok());
         assert!(std::fs::metadata(format!(
             "{}/{}/dummy/application.yaml",
-            WORKING_DIR, environment
+            working_dir, environment
         ))
         .is_ok());
     }
@@ -39,7 +38,8 @@ pub fn setup_builds_all_environments() {
 
 #[test]
 pub fn get_config_returns_bytes_of_zip_file() {
-    let config_manager = get_config_manager();
+    let working_dir = format!("./{}", uuid::Uuid::new_v4().to_string());
+    let config_manager = get_config_manager(working_dir);
     config_manager
         .setup("dummy")
         .expect("failed to setup 'dummy' stage");
@@ -63,10 +63,10 @@ fn get_environments() -> Vec<String> {
     ]
 }
 
-fn get_config_manager() -> ConfigManager {
+fn get_config_manager(working_dir: String) -> ConfigManager {
     let downloader: Arc<dyn Downloader> = Arc::new(get_git_downloader(get_test_data_path(file!())));
     let builder: Arc<dyn ConfigBuilder> = Arc::new(MicroconfigConfigBuilder::default());
-    let working_path: PathBuf = WORKING_DIR.into();
+    let working_path: PathBuf = working_dir.into();
     let packager: Arc<dyn Packager> = Arc::new(ZipPackager::new(working_path.clone()));
 
     ConfigManager::new(
