@@ -10,7 +10,7 @@ use cp_core::error::Error;
 use zip::{CompressionMethod, ZipWriter};
 
 use crate::error_kind::PATH_CONVERSION_ERROR;
-use crate::packager::Packager;
+use crate::services::packager::Packager;
 
 pub struct ZipPackager {
     working_path: PathBuf,

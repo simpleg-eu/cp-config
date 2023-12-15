@@ -9,11 +9,11 @@ use std::sync::Arc;
 
 use cp_core::error::Error;
 
-use crate::cleaner::clean_working_directory;
-use crate::config_builder::ConfigBuilder;
-use crate::downloader::Downloader;
 use crate::error_kind::{FAILED_TO_READ, FILE_NOT_FOUND};
-use crate::packager::Packager;
+use crate::services::cleaner::clean_working_directory;
+use crate::services::config_builder::ConfigBuilder;
+use crate::services::downloader::Downloader;
+use crate::services::packager::Packager;
 
 pub struct ConfigManager {
     environments: Vec<String>,

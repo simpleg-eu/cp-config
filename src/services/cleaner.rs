@@ -21,9 +21,8 @@ pub fn clean_working_directory(working_directory: &Path) -> Result<(), Error> {
 
 #[cfg(test)]
 pub mod tests {
+    use crate::services::cleaner::clean_working_directory;
     use std::path::Path;
-
-    use crate::cleaner::clean_working_directory;
 
     #[test]
     pub fn clean_working_directory_deletes_specified_directory() {

@@ -11,9 +11,9 @@ use git2::{
     Repository,
 };
 
-use crate::downloader::Downloader;
 use crate::error::ConfigError;
 use crate::error_kind::GIT_ERROR;
+use crate::services::downloader::Downloader;
 
 macro_rules! return_error {
     ($expression:expr) => {

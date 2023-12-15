@@ -2,8 +2,8 @@
  * Copyright (c) Gabriel Amihalachioaie, SimpleG 2023.
  */
 
-use crate::config_builder::ConfigBuilder;
 use crate::error_kind::{COMMAND_READ_FAILURE, CONFIG_BUILD_FAILURE, PATH_CONVERSION_ERROR};
+use crate::services::config_builder::ConfigBuilder;
 use cp_core::error::Error;
 use std::path::PathBuf;
 use std::process::Command;
