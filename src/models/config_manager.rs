@@ -90,7 +90,7 @@ impl ConfigManager {
         ok_or_return_error!(
             std::fs::remove_file(package_file_path),
             FAILED_TO_DELETE_FILE.to_string(),
-            "failed to read package file: "
+            "failed to delete package file: "
         );
 
         Ok(buffer)
