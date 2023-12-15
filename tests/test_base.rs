@@ -2,7 +2,7 @@
  * Copyright (c) Gabriel Amihalachioaie, SimpleG 2023.
  */
 
-use cp_config::git_downloader::GitDownloader;
+use cp_config::services::git_downloader::GitDownloader;
 use cp_core::config_reader::ConfigReader;
 use cp_core::secrets::bitwarden_secrets_manager::BitwardenSecretsManager;
 use cp_core::secrets::secrets_manager::SecretsManager;

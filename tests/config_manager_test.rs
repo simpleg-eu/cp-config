@@ -5,14 +5,13 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
+use cp_config::models::config_manager::ConfigManager;
+use cp_config::services::config_builder::ConfigBuilder;
+use cp_config::services::downloader::Downloader;
+use cp_config::services::microconfig_config_builder::MicroconfigConfigBuilder;
+use cp_config::services::packager::Packager;
+use cp_config::services::zip_packager::ZipPackager;
 use cp_core::test_base::get_test_data_path;
-
-use cp_config::config_builder::ConfigBuilder;
-use cp_config::config_manager::ConfigManager;
-use cp_config::downloader::Downloader;
-use cp_config::microconfig_config_builder::MicroconfigConfigBuilder;
-use cp_config::packager::Packager;
-use cp_config::zip_packager::ZipPackager;
 
 use crate::test_base::get_git_downloader;
 

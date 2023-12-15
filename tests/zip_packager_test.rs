@@ -2,8 +2,8 @@
  * Copyright (c) Gabriel Amihalachioaie, SimpleG 2023.
  */
 
-use cp_config::packager::Packager;
-use cp_config::zip_packager::ZipPackager;
+use cp_config::services::packager::Packager;
+use cp_config::services::zip_packager::ZipPackager;
 use cp_core::test_base::get_test_data_path;
 use std::fs::File;
 use std::io::Error;

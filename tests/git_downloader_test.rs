@@ -9,9 +9,9 @@ use cp_core::error::Error;
 use cp_core::test_base::get_test_data_path;
 use git2::{Repository, Signature, Time};
 
-use cp_config::downloader::Downloader;
 use cp_config::error::ConfigError;
-use cp_config::git_downloader::GitDownloader;
+use cp_config::services::downloader::Downloader;
+use cp_config::services::git_downloader::GitDownloader;
 
 use crate::test_base::get_git_downloader;
 

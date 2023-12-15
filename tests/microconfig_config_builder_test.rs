@@ -2,11 +2,10 @@
  * Copyright (c) Gabriel Amihalachioaie, SimpleG 2023.
  */
 
+use cp_config::services::config_builder::ConfigBuilder;
+use cp_config::services::microconfig_config_builder::MicroconfigConfigBuilder;
 use cp_core::config_reader::ConfigReader;
 use cp_core::test_base::get_test_data_path;
-
-use cp_config::config_builder::ConfigBuilder;
-use cp_config::microconfig_config_builder::MicroconfigConfigBuilder;
 
 #[test]
 pub fn build_creates_expected_file() {
