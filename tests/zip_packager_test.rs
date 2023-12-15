@@ -13,14 +13,15 @@ use zip::ZipArchive;
 #[test]
 pub fn package_creates_zip_containing_configuration_file() {
     let working_path = get_test_data_path(file!());
-    let zip_packager = ZipPackager::new(working_path.clone());
-    let environment: &str = "dummy";
-    let component: &str = "dummy";
+    let zip_packager = ZipPackager::default();
+    let mut source_path = working_path.clone();
+    source_path.push("dummy");
+    source_path.push("dummy");
     let package_file: &str = "dummy.zip";
     let package_file_path: &Path = Path::new("dummy.zip");
     let application_file = "application.yaml";
 
-    let _ = zip_packager.package(environment, component, package_file_path);
+    let _ = zip_packager.package(&source_path, package_file_path);
     let package_file_metadata = std::fs::metadata(package_file);
     let _ = unzip_file(package_file, "./");
     let config_file_metadata = std::fs::metadata(application_file);

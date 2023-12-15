@@ -66,7 +66,7 @@ fn get_config_manager(working_dir: String) -> ConfigManager {
     let downloader: Arc<dyn Downloader> = Arc::new(get_git_downloader(get_test_data_path(file!())));
     let builder: Arc<dyn ConfigBuilder> = Arc::new(MicroconfigConfigBuilder::default());
     let working_path: PathBuf = working_dir.into();
-    let packager: Arc<dyn Packager> = Arc::new(ZipPackager::new(working_path.clone()));
+    let packager: Arc<dyn Packager> = Arc::new(ZipPackager::default());
 
     ConfigManager::new(
         get_environments(),

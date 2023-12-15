@@ -4,7 +4,7 @@
 
 use std::fs::File;
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use cp_core::error::Error;
 use zip::{CompressionMethod, ZipWriter};
@@ -12,15 +12,10 @@ use zip::{CompressionMethod, ZipWriter};
 use crate::error_kind::PATH_CONVERSION_ERROR;
 use crate::services::packager::Packager;
 
-pub struct ZipPackager {
-    working_path: PathBuf,
-}
+#[derive(Default)]
+pub struct ZipPackager {}
 
 impl ZipPackager {
-    pub fn new(working_path: PathBuf) -> Self {
-        Self { working_path }
-    }
-
     fn zip_directory(&self, source_path: &str, target_file: &Path) -> Result<(), std::io::Error> {
         let zip_file = File::create(target_file)?;
         let options =
@@ -50,10 +45,7 @@ impl ZipPackager {
 }
 
 impl Packager for ZipPackager {
-    fn package(&self, environment: &str, component: &str, target_file: &Path) -> Result<(), Error> {
-        let mut source_path = self.working_path.clone();
-        source_path.push(environment);
-        source_path.push(component);
+    fn package(&self, source_path: &Path, target_file: &Path) -> Result<(), Error> {
         let source_path = match source_path.to_str() {
             Some(source_path) => source_path,
             None => {

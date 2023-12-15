@@ -15,7 +15,7 @@ pub trait Packager {
     /// * `component` - Configuration component, microservice, whose configuration files will be packaged into the
     /// target package file.
     /// * `target_file` - Package file.
-    fn package(&self, environment: &str, component: &str, target_file: &Path) -> Result<(), Error>;
+    fn package(&self, source_path: &Path, target_file: &Path) -> Result<(), Error>;
 
     ///
     /// Retrieves the extension of the resulting package file.
