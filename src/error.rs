@@ -16,6 +16,12 @@ impl From<git2::Error> for ConfigError {
     }
 }
 
+impl From<std::io::Error> for ConfigError {
+    fn from(value: std::io::Error) -> Self {
+        Self(Error::new(value.kind().to_string(), value.to_string()))
+    }
+}
+
 impl From<ConfigError> for Error {
     fn from(value: ConfigError) -> Self {
         value.0

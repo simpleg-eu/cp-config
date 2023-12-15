@@ -15,6 +15,15 @@ use crate::downloader::Downloader;
 use crate::error::ConfigError;
 use crate::error_kind::GIT_ERROR;
 
+macro_rules! return_error {
+    ($expression:expr) => {
+        match $expression {
+            Ok(value) => value,
+            Err(error) => return Err(ConfigError::from(error).into()),
+        }
+    };
+}
+
 pub struct GitDownloader {
     repository_url: String,
     username: String,
@@ -30,6 +39,14 @@ impl GitDownloader {
             username,
             password,
         }
+    }
+
+    pub fn username(&self) -> &str {
+        self.username.as_str()
+    }
+
+    pub fn password(&self) -> &str {
+        self.password.as_str()
     }
 
     fn pull(&self, target_path: &Path, stage: &str) -> Result<(), Error> {
@@ -282,5 +299,39 @@ impl Downloader for GitDownloader {
         } else {
             self.clone(target_path, stage)
         }
+    }
+
+    fn is_new_version_available(&self, target_path: &Path, stage: &str) -> Result<bool, Error> {
+        let repository = return_error!(Repository::open(target_path));
+
+        let local_head = return_error!(repository.head());
+        let local_commit_oid = return_error!(local_head.peel_to_commit()).id();
+
+        let mut remote = return_error!(repository.find_remote("origin"));
+
+        let mut fetch_options = FetchOptions::new();
+        let mut callbacks = RemoteCallbacks::new();
+
+        callbacks.credentials(|_, _, _| Cred::userpass_plaintext(self.username(), self.password()));
+
+        fetch_options.remote_callbacks(callbacks);
+
+        let empty_slice: &[&str] = &[];
+        return_error!(remote.fetch(empty_slice, Some(&mut fetch_options), None));
+
+        let remote_head = return_error!(
+            repository.find_reference(format!("refs/remotes/origin/{}", stage).as_str())
+        );
+        let remote_commit_oid = match remote_head.target() {
+            Some(oid) => oid,
+            None => {
+                return Err(Error::new(
+                    GIT_ERROR.to_string(),
+                    "failed to get oid of remote head".to_string(),
+                ))
+            }
+        };
+
+        Ok(local_commit_oid != remote_commit_oid)
     }
 }

@@ -15,4 +15,5 @@ pub trait Downloader {
     /// * `target_path` - Path where the configuration files will be downloaded.
     /// * `stage` - Flavour of the configuration files being downloaded.
     fn download(&self, target_path: &Path, stage: &str) -> Result<(), Error>;
+    fn is_new_version_available(&self, target_path: &Path, stage: &str) -> Result<bool, Error>;
 }
