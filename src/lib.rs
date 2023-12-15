@@ -7,3 +7,4 @@ pub mod error;
 mod error_kind;
 pub mod models;
 pub mod services;
+pub mod test_base;

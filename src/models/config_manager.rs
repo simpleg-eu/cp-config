@@ -118,3 +118,79 @@ impl Drop for ConfigManager {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use cp_core::test_base::get_unit_test_data_path;
+    use std::path::PathBuf;
+    use std::sync::Arc;
+
+    use crate::models::config_manager::ConfigManager;
+    use crate::services::config_builder::ConfigBuilder;
+    use crate::services::downloader::Downloader;
+    use crate::services::microconfig_config_builder::MicroconfigConfigBuilder;
+    use crate::services::packager::Packager;
+    use crate::services::zip_packager::ZipPackager;
+    use crate::test_base::get_git_downloader;
+
+    #[test]
+    pub fn setup_builds_all_environments() {
+        let working_dir = format!("./{}", uuid::Uuid::new_v4());
+        let config_manager = get_config_manager(working_dir.clone());
+
+        let setup_result = config_manager.setup("dummy");
+
+        assert!(setup_result.is_ok());
+        for environment in get_environments() {
+            assert!(std::fs::metadata(format!("{}/{}", working_dir, environment)).is_ok());
+            assert!(std::fs::metadata(format!(
+                "{}/{}/dummy/application.yaml",
+                working_dir, environment
+            ))
+            .is_ok());
+        }
+    }
+
+    #[test]
+    pub fn get_config_returns_bytes_of_zip_file() {
+        let working_dir = format!("./{}", uuid::Uuid::new_v4());
+        let config_manager = get_config_manager(working_dir);
+        config_manager
+            .setup("dummy")
+            .expect("failed to setup 'dummy' stage");
+
+        let result = config_manager.get_config("dummy", "dummy");
+
+        match result {
+            Ok(data) => assert!(!data.is_empty()),
+            Err(error) => {
+                panic!("{}", error);
+            }
+        }
+    }
+
+    fn get_environments() -> Vec<String> {
+        vec![
+            "dummy".to_string(),
+            "development".to_string(),
+            "staging".to_string(),
+            "production".to_string(),
+        ]
+    }
+
+    fn get_config_manager(working_dir: String) -> ConfigManager {
+        let downloader: Arc<dyn Downloader> =
+            Arc::new(get_git_downloader(get_unit_test_data_path(file!())));
+        let builder: Arc<dyn ConfigBuilder> = Arc::new(MicroconfigConfigBuilder::default());
+        let working_path: PathBuf = working_dir.into();
+        let packager: Arc<dyn Packager> = Arc::new(ZipPackager::default());
+
+        ConfigManager::new(
+            get_environments(),
+            downloader,
+            builder,
+            packager,
+            working_path,
+        )
+    }
+}

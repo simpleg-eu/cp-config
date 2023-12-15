@@ -7,7 +7,7 @@ pub mod error;
 mod error_kind;
 pub mod models;
 pub mod services;
+pub mod test_base;
 
-fn main() {
-    println!("Hello, world!");
-}
+#[tokio::main]
+pub async fn main() {}
