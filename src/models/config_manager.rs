@@ -8,8 +8,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use cp_core::error::Error;
+use cp_core::ok_or_return_error;
 
-use crate::error_kind::{FAILED_TO_READ, FILE_NOT_FOUND};
+use crate::error_kind::{FAILED_TO_DELETE_FILE, FAILED_TO_READ, FILE_NOT_FOUND};
 use crate::services::cleaner::clean_working_directory;
 use crate::services::config_builder::ConfigBuilder;
 use crate::services::downloader::Downloader;
@@ -64,27 +65,33 @@ impl ConfigManager {
             uuid::Uuid::new_v4(),
             self.packager.extension()
         ));
+
+        let mut source_path = self.working_path.clone();
+        source_path.push(environment);
+        source_path.push(component);
+
         self.packager
-            .package(environment, component, package_file_path.as_path())?;
-        let mut package_file = match File::open(package_file_path) {
-            Ok(package_file) => package_file,
-            Err(error) => {
-                return Err(Error::new(
-                    FILE_NOT_FOUND.to_string(),
-                    format!("failed to open package file: {}", error),
-                ));
-            }
-        };
+            .package(&source_path, package_file_path.as_path())?;
+
+        let mut package_file = ok_or_return_error!(
+            File::open(&package_file_path),
+            FILE_NOT_FOUND.to_string(),
+            "failed to open package file: "
+        );
+
         let mut buffer: Vec<u8> = Vec::new();
-        match package_file.read_to_end(&mut buffer) {
-            Ok(_) => (),
-            Err(error) => {
-                return Err(Error::new(
-                    FAILED_TO_READ.to_string(),
-                    format!("failed to read package file: {}", error),
-                ))
-            }
-        }
+
+        ok_or_return_error!(
+            package_file.read_to_end(&mut buffer),
+            FAILED_TO_READ.to_string(),
+            "failed to read package file: "
+        );
+
+        ok_or_return_error!(
+            std::fs::remove_file(package_file_path),
+            FAILED_TO_DELETE_FILE.to_string(),
+            "failed to read package file: "
+        );
 
         Ok(buffer)
     }

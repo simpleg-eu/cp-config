@@ -7,15 +7,22 @@ edition = "2021"
 
 [dependencies]
 
-cp-core = "0.2.4"
+cp-core = "0.2.6"
 
-git2 = "0.18.1"
+git2 = "0.18"
 
 log = { version = "0.4", features = [] }
 
 zip = "0.6"
 
 uuid = { version = "1.6", features = ["v4"] }
+
+tokio = { version = "1.35", features = ["full"] }
+
+axum = "0.7"
+
+shaku = "0.6"
+shaku_axum = "0.4"
 
 [dev-dependencies]
 
