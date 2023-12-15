@@ -41,8 +41,7 @@ impl ConfigManager {
     }
 
     pub fn setup(&self, stage: &str) -> Result<(), Error> {
-        let mut download_path = self.working_path.clone();
-        download_path.push("download");
+        let download_path: PathBuf = self.get_download_path();
         self.downloader.download(&download_path, stage)?;
 
         for environment in self.environments.as_slice() {
@@ -88,6 +87,19 @@ impl ConfigManager {
         }
 
         Ok(buffer)
+    }
+
+    pub fn is_new_version_available(&self, stage: &str) -> Result<bool, Error> {
+        let download_path = self.get_download_path();
+        self.downloader
+            .is_new_version_available(&download_path, stage)
+    }
+
+    fn get_download_path(&self) -> PathBuf {
+        let mut download_path = self.working_path.clone();
+        download_path.push("download");
+
+        download_path
     }
 }
 
