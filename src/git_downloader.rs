@@ -50,15 +50,9 @@ impl GitDownloader {
     }
 
     fn pull(&self, target_path: &Path, stage: &str) -> Result<(), Error> {
-        let repository = match Repository::open(target_path) {
-            Ok(repository) => repository,
-            Err(error) => return Err(ConfigError::from(error).into()),
-        };
+        let repository = return_error!(Repository::open(target_path));
 
-        let mut remote = match repository.find_remote(GIT_REMOTE_NAME) {
-            Ok(remote) => remote,
-            Err(error) => return Err(ConfigError::from(error).into()),
-        };
+        let mut remote = return_error!(repository.find_remote(GIT_REMOTE_NAME));
 
         let fetch_commit = self.fetch(&repository, &[stage], &mut remote)?;
         self.merge(&repository, stage, fetch_commit)?;
@@ -78,19 +72,10 @@ impl GitDownloader {
         fetch_options.remote_callbacks(remote_callbacks);
         fetch_options.download_tags(AutotagOption::All);
 
-        match remote.fetch(refs, Some(&mut fetch_options), None) {
-            Ok(_) => (),
-            Err(error) => return Err(ConfigError::from(error).into()),
-        }
+        return_error!(remote.fetch(refs, Some(&mut fetch_options), None));
 
-        let fetch_head = match repository.find_reference("FETCH_HEAD") {
-            Ok(fetch_head) => fetch_head,
-            Err(error) => return Err(ConfigError::from(error).into()),
-        };
-        let commit = match repository.reference_to_annotated_commit(&fetch_head) {
-            Ok(commit) => commit,
-            Err(error) => return Err(ConfigError::from(error).into()),
-        };
+        let fetch_head = return_error!(repository.find_reference("FETCH_HEAD"));
+        let commit = return_error!(repository.reference_to_annotated_commit(&fetch_head));
 
         Ok(commit)
     }
@@ -101,10 +86,7 @@ impl GitDownloader {
         remote_branch: &str,
         fetch_commit: AnnotatedCommit<'a>,
     ) -> Result<(), Error> {
-        let analysis = match repository.merge_analysis(&[&fetch_commit]) {
-            Ok(analysis) => analysis,
-            Err(error) => return Err(ConfigError::from(error).into()),
-        };
+        let analysis = return_error!(repository.merge_analysis(&[&fetch_commit]));
 
         if analysis.0.is_fast_forward() {
             let ref_name = format!("refs/heads/{}", remote_branch);
@@ -123,20 +105,12 @@ impl GitDownloader {
                 }
             }
         } else if analysis.0.is_normal() {
-            let repository_head = match repository.head() {
-                Ok(repository_head) => repository_head,
-                Err(error) => return Err(ConfigError::from(error).into()),
-            };
+            let repository_head = return_error!(repository.head());
 
-            let head_commit = match repository.reference_to_annotated_commit(&repository_head) {
-                Ok(head_commit) => head_commit,
-                Err(error) => return Err(ConfigError::from(error).into()),
-            };
+            let head_commit =
+                return_error!(repository.reference_to_annotated_commit(&repository_head));
 
-            match self.normal_merge(repository, &head_commit, &fetch_commit) {
-                Ok(_) => (),
-                Err(error) => return Err(ConfigError::from(error).into()),
-            }
+            return_error!(self.normal_merge(repository, &head_commit, &fetch_commit));
         }
         Ok(())
     }
@@ -152,23 +126,14 @@ impl GitDownloader {
             None => String::from_utf8_lossy(reference.name_bytes()).to_string(),
         };
 
-        match reference.set_target(
+        return_error!(reference.set_target(
             commit.id(),
             &format!("fast forward: setting {} to id: {}", name, commit.id()),
-        ) {
-            Ok(_) => (),
-            Err(error) => return Err(ConfigError::from(error).into()),
-        }
+        ));
 
-        match repository.set_head(&name) {
-            Ok(_) => (),
-            Err(error) => return Err(ConfigError::from(error).into()),
-        }
+        return_error!(repository.set_head(&name));
 
-        match repository.checkout_head(Some(CheckoutBuilder::default().force())) {
-            Ok(_) => (),
-            Err(error) => return Err(ConfigError::from(error).into()),
-        }
+        return_error!(repository.checkout_head(Some(CheckoutBuilder::default().force())));
 
         Ok(())
     }
@@ -180,30 +145,21 @@ impl GitDownloader {
         remote_branch: &str,
         fetch_commit: &AnnotatedCommit,
     ) -> Result<(), Error> {
-        match repository.reference(
+        return_error!(repository.reference(
             ref_name,
             fetch_commit.id(),
             true,
             &format!("setting {} to {}", remote_branch, fetch_commit.id()),
-        ) {
-            Ok(_) => (),
-            Err(error) => return Err(ConfigError::from(error).into()),
-        }
+        ));
 
-        match repository.set_head(ref_name) {
-            Ok(_) => (),
-            Err(error) => return Err(ConfigError::from(error).into()),
-        }
+        return_error!(repository.set_head(ref_name));
 
-        match repository.checkout_head(Some(
+        return_error!(repository.checkout_head(Some(
             CheckoutBuilder::default()
                 .allow_conflicts(true)
                 .conflict_style_merge(true)
                 .force(),
-        )) {
-            Ok(_) => (),
-            Err(error) => return Err(ConfigError::from(error).into()),
-        }
+        )));
 
         Ok(())
     }
@@ -267,15 +223,7 @@ impl GitDownloader {
         builder.fetch_options(fetch_options);
         builder.branch(stage);
 
-        match builder.clone(self.repository_url.as_str(), target_path) {
-            Ok(_) => (),
-            Err(error) => {
-                return Err(Error::new(
-                    GIT_ERROR.to_string(),
-                    format!("failed to clone repository: {}", error.message()),
-                ));
-            }
-        }
+        return_error!(builder.clone(self.repository_url.as_str(), target_path));
 
         Ok(())
     }
@@ -328,7 +276,7 @@ impl Downloader for GitDownloader {
                 return Err(Error::new(
                     GIT_ERROR.to_string(),
                     "failed to get oid of remote head".to_string(),
-                ))
+                ));
             }
         };
 
