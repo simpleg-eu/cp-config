@@ -3,7 +3,6 @@
  */
 
 use std::path::{Path, PathBuf};
-use std::time::Duration;
 
 use chrono::Utc;
 use cp_core::error::Error;
@@ -52,8 +51,8 @@ pub fn is_update_available_returns_true_when_there_is_an_update_available() {
     let write_result = write_changes(&download_path, &downloader);
     let version_result = alt_downloader.is_new_version_available(&alt_download_path, TEST_STAGE);
 
-    std::fs::remove_dir_all(working_directory);
-    std::fs::remove_dir_all(alt_working_directory);
+    let _ = std::fs::remove_dir_all(working_directory);
+    let _ = std::fs::remove_dir_all(alt_working_directory);
     assert!(result.is_ok());
     assert!(alt_result.is_ok());
     assert!(write_result.is_ok());
