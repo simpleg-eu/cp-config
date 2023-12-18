@@ -26,7 +26,6 @@ pub struct ConfigSupplier {
     packager: Arc<dyn Packager + Send + Sync>,
     working_path: PathBuf,
     stage: String,
-    ready: bool,
 }
 
 impl ConfigSupplier {
@@ -45,7 +44,6 @@ impl ConfigSupplier {
             packager,
             working_path,
             stage,
-            ready: false,
         };
 
         supplier.setup()?;
