@@ -179,7 +179,7 @@ impl Drop for ConfigSupplier {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use std::path::PathBuf;
     use std::sync::Arc;
     use std::time::Duration;
@@ -278,26 +278,8 @@ mod tests {
     pub async fn run_get_config_request_sends_config() {
         let expected_file_bytes: Vec<u8> = vec![];
         let working_dir = uuid::Uuid::new_v4().to_string();
-        let mut mock_downloader = MockDownloader::new();
-        mock_downloader.expect_download().returning(|_, _| Ok(()));
-        let mut mock_builder = MockConfigBuilder::new();
-        mock_builder.expect_build().returning(|_, _, _| Ok(()));
-        let mut mock_packager = MockPackager::new();
-        mock_packager
-            .expect_package()
-            .returning(|source_path, target_file| {
-                std::fs::create_dir_all(source_path).expect("failed to create source directory");
-                std::fs::File::create(target_file).expect("failed to create target file");
-
-                Ok(())
-            });
-        mock_packager
-            .expect_extension()
-            .returning(|| "zip".to_string());
-        let downloader: Arc<dyn Downloader + Send + Sync> = Arc::new(mock_downloader);
-        let builder: Arc<dyn ConfigBuilder + Send + Sync> = Arc::new(mock_builder);
+        let (downloader, builder, packager) = mock_dependencies();
         let working_path: PathBuf = working_dir.into();
-        let packager: Arc<dyn Packager + Send + Sync> = Arc::new(mock_packager);
         let config_supplier = ConfigSupplier::try_new(
             get_environments(),
             downloader,
@@ -339,7 +321,35 @@ mod tests {
         }
     }
 
-    fn get_environments() -> Vec<String> {
+    pub fn mock_dependencies() -> (
+        Arc<dyn Downloader + Send + Sync>,
+        Arc<dyn ConfigBuilder + Send + Sync>,
+        Arc<dyn Packager + Send + Sync>,
+    ) {
+        let mut mock_downloader = MockDownloader::new();
+        mock_downloader.expect_download().returning(|_, _| Ok(()));
+        let mut mock_builder = MockConfigBuilder::new();
+        mock_builder.expect_build().returning(|_, _, _| Ok(()));
+        let mut mock_packager = MockPackager::new();
+        mock_packager
+            .expect_package()
+            .returning(|source_path, target_file| {
+                std::fs::create_dir_all(source_path).expect("failed to create source directory");
+                std::fs::File::create(target_file).expect("failed to create target file");
+
+                Ok(())
+            });
+        mock_packager
+            .expect_extension()
+            .returning(|| "zip".to_string());
+        let downloader: Arc<dyn Downloader + Send + Sync> = Arc::new(mock_downloader);
+        let builder: Arc<dyn ConfigBuilder + Send + Sync> = Arc::new(mock_builder);
+        let packager: Arc<dyn Packager + Send + Sync> = Arc::new(mock_packager);
+
+        (downloader, builder, packager)
+    }
+
+    pub fn get_environments() -> Vec<String> {
         vec![
             "dummy".to_string(),
             "development".to_string(),
