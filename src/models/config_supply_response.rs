@@ -5,5 +5,6 @@
 use cp_core::error::Error;
 
 pub enum ConfigSupplyResponse {
-    UpdateResult { result: Result<(), Error> },
+    Update { result: Result<(), Error> },
+    GetConfig { result: Result<Vec<u8>, Error> },
 }

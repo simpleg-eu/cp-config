@@ -24,6 +24,10 @@ axum = "0.7"
 shaku = "0.6"
 shaku_axum = "0.4"
 
+async-channel = "2.1"
+
 [dev-dependencies]
 
 chrono = { version = "0.4", features = ["clock"] }
+
+mockall = "0.12.0"

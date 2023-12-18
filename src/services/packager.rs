@@ -5,6 +5,10 @@
 use cp_core::error::Error;
 use std::path::Path;
 
+#[cfg(test)]
+use mockall::automock;
+
+#[cfg_attr(test, automock)]
 pub trait Packager {
     ///
     /// Packages the configuration files for the specified environment and component into the target package file.

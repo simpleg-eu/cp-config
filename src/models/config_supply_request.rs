@@ -9,4 +9,9 @@ pub enum ConfigSupplyRequest {
     Update {
         replier: Sender<ConfigSupplyResponse>,
     },
+    GetConfig {
+        environment: String,
+        component: String,
+        replier: Sender<ConfigSupplyResponse>,
+    },
 }

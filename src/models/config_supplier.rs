@@ -110,9 +110,21 @@ impl ConfigSupplier {
                     let download_path: PathBuf = self.get_download_path();
                     let result = self.downloader.download(&download_path, &self.stage);
 
-                    match replier.send(ConfigSupplyResponse::UpdateResult { result }) {
+                    match replier.send(ConfigSupplyResponse::Update { result }) {
                         Ok(_) => (),
                         Err(_) => log::warn!("failed to reply with the update result"),
+                    }
+                }
+                ConfigSupplyRequest::GetConfig {
+                    environment,
+                    component,
+                    replier,
+                } => {
+                    let result = self.get_config(&environment, &component);
+
+                    match replier.send(ConfigSupplyResponse::GetConfig { result }) {
+                        Ok(_) => (),
+                        Err(_) => log::warn!("failed to reply with the get configuration result"),
                     }
                 }
             }
@@ -163,10 +175,10 @@ mod tests {
     use crate::models::config_supplier::ConfigSupplier;
     use crate::models::config_supply_request::ConfigSupplyRequest;
     use crate::models::config_supply_response::ConfigSupplyResponse;
-    use crate::services::config_builder::ConfigBuilder;
+    use crate::services::config_builder::{ConfigBuilder, MockConfigBuilder};
     use crate::services::downloader::{Downloader, MockDownloader};
     use crate::services::microconfig_config_builder::MicroconfigConfigBuilder;
-    use crate::services::packager::Packager;
+    use crate::services::packager::{MockPackager, Packager};
     use crate::services::zip_packager::ZipPackager;
     use crate::test_base::get_git_downloader;
 
@@ -205,7 +217,7 @@ mod tests {
     pub async fn run_updates_when_receives_update_request() {
         let working_dir = uuid::Uuid::new_v4().to_string();
         let mut mock_downloader = MockDownloader::new();
-        mock_downloader.expect_download().returning(|a, b| Ok(()));
+        mock_downloader.expect_download().returning(|_, _| Ok(()));
         let downloader: Arc<dyn Downloader + Send + Sync> = Arc::new(mock_downloader);
         let builder: Arc<dyn ConfigBuilder + Send + Sync> =
             Arc::new(MicroconfigConfigBuilder::default());
@@ -235,10 +247,74 @@ mod tests {
             .unwrap()
         {
             Ok(result) => match result {
-                ConfigSupplyResponse::UpdateResult { result } => assert!(result.is_ok()),
+                ConfigSupplyResponse::Update { result } => assert!(result.is_ok()),
                 _ => panic!("unexpected result received"),
             },
             Err(error) => panic!("failed to receive update result: {}", error),
+        }
+    }
+
+    #[tokio::test]
+    pub async fn run_get_config_request_sends_config() {
+        let expected_file_bytes: Vec<u8> = vec![];
+        let working_dir = uuid::Uuid::new_v4().to_string();
+        let mut mock_downloader = MockDownloader::new();
+        mock_downloader.expect_download().returning(|_, _| Ok(()));
+        let mut mock_builder = MockConfigBuilder::new();
+        mock_builder.expect_build().returning(|_, _, _| Ok(()));
+        let mut mock_packager = MockPackager::new();
+        mock_packager
+            .expect_package()
+            .returning(|source_path, target_file| {
+                std::fs::create_dir_all(source_path).expect("failed to create source directory");
+                std::fs::File::create(target_file).expect("failed to create target file");
+
+                Ok(())
+            });
+        mock_packager
+            .expect_extension()
+            .returning(|| "zip".to_string());
+        let downloader: Arc<dyn Downloader + Send + Sync> = Arc::new(mock_downloader);
+        let builder: Arc<dyn ConfigBuilder + Send + Sync> = Arc::new(mock_builder);
+        let working_path: PathBuf = working_dir.into();
+        let packager: Arc<dyn Packager + Send + Sync> = Arc::new(mock_packager);
+        let config_supplier = ConfigSupplier::new(
+            get_environments(),
+            downloader,
+            builder,
+            packager,
+            working_path,
+            "dummy".to_string(),
+        );
+        let (sender, receiver) = async_channel::bounded::<ConfigSupplyRequest>(1024usize);
+        tokio::spawn(async move {
+            config_supplier.run(receiver).await;
+        });
+        let (replier, reply_receiver) = tokio::sync::oneshot::channel::<ConfigSupplyResponse>();
+
+        sender
+            .send(ConfigSupplyRequest::GetConfig {
+                environment: "dummy".to_string(),
+                component: "dummy".to_string(),
+                replier,
+            })
+            .await
+            .unwrap();
+
+        match timeout(Duration::from_secs(1), reply_receiver)
+            .await
+            .unwrap()
+        {
+            Ok(result) => match result {
+                ConfigSupplyResponse::GetConfig { result } => {
+                    let bytes: Vec<u8> =
+                        result.expect("failed to get expected file bytes from config result");
+
+                    assert_eq!(expected_file_bytes, bytes);
+                }
+                _ => panic!("unexpected result received"),
+            },
+            Err(error) => panic!("failed to receive get config result: {}", error),
         }
     }
 

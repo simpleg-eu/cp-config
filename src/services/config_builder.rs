@@ -2,9 +2,13 @@
  * Copyright (c) Gabriel Amihalachioaie, SimpleG 2023.
  */
 
-use cp_core::error::Error;
 use std::path::PathBuf;
 
+use cp_core::error::Error;
+#[cfg(test)]
+use mockall::automock;
+
+#[cfg_attr(test, automock)]
 pub trait ConfigBuilder {
     ///
     /// Builds the configuration files for the specified environment, using the source files located at the specified
