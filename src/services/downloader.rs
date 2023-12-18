@@ -6,6 +6,10 @@ use std::path::Path;
 
 use cp_core::error::Error;
 
+#[cfg(test)]
+use mockall::automock;
+
+#[cfg_attr(test, automock)]
 pub trait Downloader {
     ///
     /// Downloads the latest state of the configuration files which are part of the specified stage.
