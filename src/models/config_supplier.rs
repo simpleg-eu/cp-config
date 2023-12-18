@@ -30,15 +30,15 @@ pub struct ConfigSupplier {
 }
 
 impl ConfigSupplier {
-    pub fn new(
+    pub fn try_new(
         environments: Vec<String>,
         downloader: Arc<dyn Downloader + Send + Sync>,
         builder: Arc<dyn ConfigBuilder + Send + Sync>,
         packager: Arc<dyn Packager + Send + Sync>,
         working_path: PathBuf,
         stage: String,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, Error> {
+        let supplier = Self {
             environments,
             downloader,
             builder,
@@ -46,7 +46,11 @@ impl ConfigSupplier {
             working_path,
             stage,
             ready: false,
-        }
+        };
+
+        supplier.setup()?;
+
+        Ok(supplier)
     }
 
     pub fn get_config(&self, environment: &str, component: &str) -> Result<Vec<u8>, Error> {
@@ -108,7 +112,20 @@ impl ConfigSupplier {
             match request {
                 ConfigSupplyRequest::Update { replier } => {
                     let download_path: PathBuf = self.get_download_path();
-                    let result = self.downloader.download(&download_path, &self.stage);
+
+                    let result = match self
+                        .downloader
+                        .is_new_version_available(&download_path, &self.stage)
+                    {
+                        Ok(is_new_version_available) => {
+                            if is_new_version_available {
+                                self.downloader.download(&download_path, &self.stage)
+                            } else {
+                                Ok(())
+                            }
+                        }
+                        Err(error) => Err(error),
+                    };
 
                     match replier.send(ConfigSupplyResponse::Update { result }) {
                         Ok(_) => (),
@@ -186,7 +203,7 @@ mod tests {
     pub fn try_new_builds_all_environments() {
         let working_dir = format!("./{}", uuid::Uuid::new_v4());
 
-        let _ = get_config_supplier(working_dir.clone());
+        let supplier = get_config_supplier(working_dir.clone());
 
         for environment in get_environments() {
             assert!(std::fs::metadata(format!("{}/{}", working_dir, environment)).is_ok());
@@ -218,19 +235,24 @@ mod tests {
         let working_dir = uuid::Uuid::new_v4().to_string();
         let mut mock_downloader = MockDownloader::new();
         mock_downloader.expect_download().returning(|_, _| Ok(()));
+        mock_downloader
+            .expect_is_new_version_available()
+            .returning(|_, _| Ok(true));
+        let mut mock_builder = MockConfigBuilder::new();
+        mock_builder.expect_build().returning(|_, _, _| Ok(()));
         let downloader: Arc<dyn Downloader + Send + Sync> = Arc::new(mock_downloader);
-        let builder: Arc<dyn ConfigBuilder + Send + Sync> =
-            Arc::new(MicroconfigConfigBuilder::default());
+        let builder: Arc<dyn ConfigBuilder + Send + Sync> = Arc::new(mock_builder);
         let working_path: PathBuf = working_dir.into();
         let packager: Arc<dyn Packager + Send + Sync> = Arc::new(ZipPackager::default());
-        let config_supplier = ConfigSupplier::new(
+        let config_supplier = ConfigSupplier::try_new(
             get_environments(),
             downloader,
             builder,
             packager,
             working_path,
             "dummy".to_string(),
-        );
+        )
+        .unwrap();
         let (sender, receiver) = async_channel::bounded::<ConfigSupplyRequest>(1024usize);
         tokio::spawn(async move {
             config_supplier.run(receiver).await;
@@ -278,14 +300,15 @@ mod tests {
         let builder: Arc<dyn ConfigBuilder + Send + Sync> = Arc::new(mock_builder);
         let working_path: PathBuf = working_dir.into();
         let packager: Arc<dyn Packager + Send + Sync> = Arc::new(mock_packager);
-        let config_supplier = ConfigSupplier::new(
+        let config_supplier = ConfigSupplier::try_new(
             get_environments(),
             downloader,
             builder,
             packager,
             working_path,
             "dummy".to_string(),
-        );
+        )
+        .unwrap();
         let (sender, receiver) = async_channel::bounded::<ConfigSupplyRequest>(1024usize);
         tokio::spawn(async move {
             config_supplier.run(receiver).await;
@@ -335,7 +358,7 @@ mod tests {
         let working_path: PathBuf = working_dir.into();
         let packager: Arc<dyn Packager + Send + Sync> = Arc::new(ZipPackager::default());
 
-        ConfigSupplier::new(
+        ConfigSupplier::try_new(
             get_environments(),
             downloader,
             builder,
@@ -343,5 +366,6 @@ mod tests {
             working_path,
             "dummy".to_string(),
         )
+        .unwrap()
     }
 }
