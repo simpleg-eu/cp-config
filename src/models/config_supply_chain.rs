@@ -17,6 +17,7 @@ pub struct ConfigSupplyChain {
     sender: Sender<ConfigSupplyRequest>,
     receiver: Receiver<ConfigSupplyRequest>,
     config_supplier_init: ConfigSupplierInit,
+    suppliers_count: usize,
 }
 
 impl ConfigSupplyChain {
@@ -30,6 +31,7 @@ impl ConfigSupplyChain {
             sender,
             receiver,
             config_supplier_init,
+            suppliers_count,
         };
 
         for _ in 0usize..suppliers_count {
@@ -40,6 +42,13 @@ impl ConfigSupplyChain {
     }
 
     pub async fn get_config(&self, environment: &str, component: &str) -> Result<Vec<u8>, Error> {
+        let current_suppliers_count = self.sender.receiver_count() - 1;
+        if current_suppliers_count < self.suppliers_count {
+            for _ in 0..(self.suppliers_count - current_suppliers_count) {
+                self.add_supplier()?;
+            }
+        }
+
         let (replier, reply_receiver) = tokio::sync::oneshot::channel::<ConfigSupplyResponse>();
 
         return_error!(
@@ -134,5 +143,29 @@ pub mod tests {
         let config = supply_chain.get_config("dummy", "dummy").await.unwrap();
 
         assert_eq!(expected_bytes, config);
+    }
+
+    #[tokio::test]
+    pub async fn get_config_initializes_new_suppliers() {
+        let suppliers_count: usize = 2usize;
+        let expected_suppliers: usize = 4usize;
+        let (downloader, builder, packager) = mock_dependencies();
+        let mut supply_chain = ConfigSupplyChain::try_new(
+            suppliers_count,
+            ConfigSupplierInit {
+                environments: get_environments(),
+                downloader,
+                builder,
+                packager,
+                stage: "dummy".to_string(),
+            },
+        )
+        .unwrap();
+        supply_chain.suppliers_count = expected_suppliers;
+
+        let _ = supply_chain.get_config("dummy", "dummy").await.unwrap();
+
+        // + 1 in order to include the receiver held within the ConfigSupplyChain struct.
+        assert_eq!(expected_suppliers + 1, supply_chain.sender.receiver_count());
     }
 }
