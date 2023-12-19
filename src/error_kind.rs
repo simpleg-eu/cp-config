@@ -9,3 +9,5 @@ pub const COMMAND_READ_FAILURE: &str = "command_read_failure";
 pub const FILE_NOT_FOUND: &str = "file_not_found";
 pub const FAILED_TO_READ: &str = "failed_to_read";
 pub const FAILED_TO_DELETE_FILE: &str = "failed_to_delete_file";
+pub const CHANNEL_COMMUNICATION_FAILURE: &str = "channel_communication_failure";
+pub const UNEXPECTED_RESPONSE_TYPE: &str = "unexpected_response_type";

@@ -13,16 +13,8 @@ use git2::{
 
 use crate::error::ConfigError;
 use crate::error_kind::GIT_ERROR;
+use crate::return_error;
 use crate::services::downloader::Downloader;
-
-macro_rules! return_error {
-    ($expression:expr) => {
-        match $expression {
-            Ok(value) => value,
-            Err(error) => return Err(ConfigError::from(error).into()),
-        }
-    };
-}
 
 pub struct GitDownloader {
     repository_url: String,

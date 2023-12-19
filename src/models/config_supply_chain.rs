@@ -3,12 +3,15 @@
  */
 
 use async_channel::{Receiver, Sender};
-
 use cp_core::error::Error;
 
+use crate::error::ConfigError;
+use crate::error_kind::CHANNEL_COMMUNICATION_FAILURE;
 use crate::models::config_supplier::ConfigSupplier;
 use crate::models::config_supplier_init::ConfigSupplierInit;
 use crate::models::config_supply_request::ConfigSupplyRequest;
+use crate::models::config_supply_response::ConfigSupplyResponse;
+use crate::return_error;
 
 pub struct ConfigSupplyChain {
     sender: Sender<ConfigSupplyRequest>,
@@ -34,6 +37,33 @@ impl ConfigSupplyChain {
         }
 
         Ok(supply_chain)
+    }
+
+    pub async fn get_config(&self, environment: &str, component: &str) -> Result<Vec<u8>, Error> {
+        let (replier, reply_receiver) = tokio::sync::oneshot::channel::<ConfigSupplyResponse>();
+
+        return_error!(
+            self.sender
+                .send(ConfigSupplyRequest::GetConfig {
+                    environment: environment.to_string(),
+                    component: component.to_string(),
+                    replier,
+                })
+                .await
+        );
+
+        let response = return_error!(reply_receiver.await);
+
+        match response {
+            ConfigSupplyResponse::GetConfig { result } => result,
+            _ => Err(Error::new(
+                CHANNEL_COMMUNICATION_FAILURE.to_string(),
+                format!(
+                    "received an unexpected response type for get config request: {:?}",
+                    response
+                ),
+            )),
+        }
     }
 
     fn add_supplier(&self) -> Result<(), Error> {
@@ -82,5 +112,27 @@ pub mod tests {
 
         // + 1 in order to include the receiver held within the ConfigSupplyChain struct.
         assert_eq!(expected_suppliers + 1, supply_chain.sender.receiver_count());
+    }
+
+    #[tokio::test]
+    pub async fn get_config_replies_with_expected_bytes() {
+        let expected_bytes: Vec<u8> = vec![];
+        let suppliers_count: usize = 2usize;
+        let (downloader, builder, packager) = mock_dependencies();
+        let supply_chain = ConfigSupplyChain::try_new(
+            suppliers_count,
+            ConfigSupplierInit {
+                environments: get_environments(),
+                downloader,
+                builder,
+                packager,
+                stage: "dummy".to_string(),
+            },
+        )
+        .unwrap();
+
+        let config = supply_chain.get_config("dummy", "dummy").await.unwrap();
+
+        assert_eq!(expected_bytes, config);
     }
 }
