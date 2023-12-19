@@ -77,7 +77,7 @@ impl ConfigSupplyChain {
 
     fn add_supplier(&self) -> Result<(), Error> {
         let working_path = uuid::Uuid::new_v4().to_string();
-'        let supplier = ConfigSupplier::new(
+        let supplier = ConfigSupplier::new(
             self.config_supplier_init.environments.clone(),
             self.config_supplier_init.downloader.clone(),
             self.config_supplier_init.builder.clone(),
