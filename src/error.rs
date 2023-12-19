@@ -39,7 +39,7 @@ impl From<RecvError> for ConfigError {
     fn from(value: RecvError) -> Self {
         Self(Error::new(
             CHANNEL_COMMUNICATION_FAILURE.to_string(),
-            format!("failed to receive value: {}", value.to_string()),
+            format!("failed to receive value: {}", value),
         ))
     }
 }
@@ -48,7 +48,7 @@ impl From<SendError<ConfigSupplyRequest>> for ConfigError {
     fn from(value: SendError<ConfigSupplyRequest>) -> Self {
         Self(Error::new(
             CHANNEL_COMMUNICATION_FAILURE.to_string(),
-            format!("failed to send request: {}", value.to_string()),
+            format!("failed to send request: {}", value),
         ))
     }
 }

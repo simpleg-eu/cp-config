@@ -6,7 +6,7 @@ use async_channel::{Receiver, Sender};
 use cp_core::error::Error;
 
 use crate::error::ConfigError;
-use crate::error_kind::CHANNEL_COMMUNICATION_FAILURE;
+use crate::error_kind::UNEXPECTED_RESPONSE_TYPE;
 use crate::models::config_supplier::ConfigSupplier;
 use crate::models::config_supplier_init::ConfigSupplierInit;
 use crate::models::config_supply_request::ConfigSupplyRequest;
@@ -66,7 +66,7 @@ impl ConfigSupplyChain {
         match response {
             ConfigSupplyResponse::GetConfig { result } => result,
             _ => Err(Error::new(
-                CHANNEL_COMMUNICATION_FAILURE.to_string(),
+                UNEXPECTED_RESPONSE_TYPE.to_string(),
                 format!(
                     "received an unexpected response type for get config request: {:?}",
                     response
