@@ -29,26 +29,22 @@ pub struct ConfigSupplier {
 }
 
 impl ConfigSupplier {
-    pub fn try_new(
+    pub fn new(
         environments: Vec<String>,
         downloader: Arc<dyn Downloader + Send + Sync>,
         builder: Arc<dyn ConfigBuilder + Send + Sync>,
         packager: Arc<dyn Packager + Send + Sync>,
         working_path: PathBuf,
         stage: String,
-    ) -> Result<Self, Error> {
-        let supplier = Self {
+    ) -> Self {
+        Self {
             environments,
             downloader,
             builder,
             packager,
             working_path,
             stage,
-        };
-
-        supplier.setup()?;
-
-        Ok(supplier)
+        }
     }
 
     pub fn get_config(&self, environment: &str, component: &str) -> Result<Vec<u8>, Error> {
@@ -98,6 +94,14 @@ impl ConfigSupplier {
     }
 
     pub async fn run(self, receiver: Receiver<ConfigSupplyRequest>) {
+        match self.setup() {
+            Ok(_) => (),
+            Err(error) => {
+                log::error!("failed to setup config supplier: {}", error);
+                return;
+            }
+        }
+
         loop {
             let request = match receiver.recv().await {
                 Ok(request) => request,
@@ -198,10 +202,11 @@ pub mod tests {
     use crate::test_base::get_git_downloader;
 
     #[test]
-    pub fn try_new_builds_all_environments() {
+    pub fn setup_builds_all_environments() {
         let working_dir = format!("./{}", uuid::Uuid::new_v4());
-
         let supplier = get_config_supplier(working_dir.clone());
+
+        supplier.setup().expect("failed to setup config supplier");
 
         for environment in get_environments() {
             assert!(std::fs::metadata(format!("{}/{}", working_dir, environment)).is_ok());
@@ -216,9 +221,10 @@ pub mod tests {
     #[test]
     pub fn get_config_returns_bytes_of_zip_file() {
         let working_dir = format!("./{}", uuid::Uuid::new_v4());
-        let config_manager = get_config_supplier(working_dir);
+        let supplier = get_config_supplier(working_dir);
+        supplier.setup().expect("failed to setup config manager");
 
-        let result = config_manager.get_config("dummy", "dummy");
+        let result = supplier.get_config("dummy", "dummy");
 
         match result {
             Ok(data) => assert!(!data.is_empty()),
@@ -242,15 +248,14 @@ pub mod tests {
         let builder: Arc<dyn ConfigBuilder + Send + Sync> = Arc::new(mock_builder);
         let working_path: PathBuf = working_dir.into();
         let packager: Arc<dyn Packager + Send + Sync> = Arc::new(ZipPackager::default());
-        let config_supplier = ConfigSupplier::try_new(
+        let config_supplier = ConfigSupplier::new(
             get_environments(),
             downloader,
             builder,
             packager,
             working_path,
             "dummy".to_string(),
-        )
-        .unwrap();
+        );
         let (sender, receiver) = async_channel::bounded::<ConfigSupplyRequest>(1024usize);
         tokio::spawn(async move {
             config_supplier.run(receiver).await;
@@ -280,15 +285,14 @@ pub mod tests {
         let working_dir = uuid::Uuid::new_v4().to_string();
         let (downloader, builder, packager) = mock_dependencies();
         let working_path: PathBuf = working_dir.into();
-        let config_supplier = ConfigSupplier::try_new(
+        let config_supplier = ConfigSupplier::new(
             get_environments(),
             downloader,
             builder,
             packager,
             working_path,
             "dummy".to_string(),
-        )
-        .unwrap();
+        );
         let (sender, receiver) = async_channel::bounded::<ConfigSupplyRequest>(1024usize);
         tokio::spawn(async move {
             config_supplier.run(receiver).await;
@@ -366,7 +370,7 @@ pub mod tests {
         let working_path: PathBuf = working_dir.into();
         let packager: Arc<dyn Packager + Send + Sync> = Arc::new(ZipPackager::default());
 
-        ConfigSupplier::try_new(
+        ConfigSupplier::new(
             get_environments(),
             downloader,
             builder,
@@ -374,6 +378,5 @@ pub mod tests {
             working_path,
             "dummy".to_string(),
         )
-        .unwrap()
     }
 }
