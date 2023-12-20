@@ -4,7 +4,7 @@
 
 use crate::services::git_downloader::GitDownloader;
 use cp_core::config_reader::ConfigReader;
-use cp_core::secrets::bitwarden_secrets_manager::BitwardenSecretsManager;
+use cp_core::secrets::get_secrets_manager;
 use cp_core::secrets::secrets_manager::SecretsManager;
 use std::path::PathBuf;
 
@@ -17,8 +17,7 @@ pub fn get_git_downloader(mut config_path: PathBuf) -> GitDownloader {
     let repository = git_config.get("Repository").unwrap().as_str().unwrap();
     let username_secret = git_config.get("UsernameSecret").unwrap().as_str().unwrap();
     let password_secret = git_config.get("PasswordSecret").unwrap().as_str().unwrap();
-    let secrets_manager =
-        BitwardenSecretsManager::new(std::env::var("SECRETS_MANAGER_ACCESS_TOKEN").unwrap());
+    let secrets_manager = get_secrets_manager().unwrap();
     let username = secrets_manager.get_secret(username_secret).unwrap();
     let password = secrets_manager.get_secret(password_secret).unwrap();
 

@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 
-cp-core = "0.2.7"
+cp-core = "0.2.9"
 
 git2 = "0.18"
 
@@ -21,10 +21,12 @@ tokio = { version = "1.35", features = ["full"] }
 
 axum = "0.7"
 
-shaku = "0.6"
-shaku_axum = "0.4"
-
 async-channel = "2.1"
+
+async-trait = "0.1"
+
+serde = "1.0"
+serde_yaml = "0.9"
 
 [dev-dependencies]
 
