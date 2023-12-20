@@ -10,6 +10,8 @@ use std::sync::Arc;
 use async_channel::Receiver;
 use cp_core::error::Error;
 use cp_core::ok_or_return_error;
+use tokio::signal;
+use tokio::signal::unix::SignalKind;
 
 use crate::error_kind::{FAILED_TO_DELETE_FILE, FAILED_TO_READ, FILE_NOT_FOUND};
 use crate::models::config_supply_request::ConfigSupplyRequest;
@@ -102,48 +104,85 @@ impl ConfigSupplier {
             }
         }
 
+        let mut sigint = match signal::unix::signal(SignalKind::interrupt()) {
+            Ok(sigint) => sigint,
+            Err(error) => {
+                log::error!("failed to setup signal interrupt stream: {}", error);
+                return;
+            }
+        };
+
+        let mut sigterm = match signal::unix::signal(SignalKind::terminate()) {
+            Ok(sigterm) => sigterm,
+            Err(error) => {
+                log::error!("failed to setup signal terminate stream: {}", error);
+                return;
+            }
+        };
+
+        let mut sigquit = match signal::unix::signal(SignalKind::quit()) {
+            Ok(sigquit) => sigquit,
+            Err(error) => {
+                log::error!("failed to setup signal quit stream: {}", error);
+                return;
+            }
+        };
+
         loop {
-            let request = match receiver.recv().await {
-                Ok(request) => request,
-                Err(error) => {
-                    log::warn!("failed to receive config supply request: {}", error);
+            tokio::select! {
+                _ = sigint.recv() => {
                     return;
-                }
-            };
-
-            match request {
-                ConfigSupplyRequest::Update { replier } => {
-                    let download_path: PathBuf = self.get_download_path();
-
-                    let result = match self
-                        .downloader
-                        .is_new_version_available(&download_path, &self.stage)
-                    {
-                        Ok(is_new_version_available) => {
-                            if is_new_version_available {
-                                self.downloader.download(&download_path, &self.stage)
-                            } else {
-                                Ok(())
-                            }
+                },
+                _ = sigterm.recv() => {
+                    return;
+                },
+                _ = sigquit.recv() => {
+                    return;
+                },
+                result = receiver.recv() => {
+                    let request = match result {
+                        Ok(request) => request,
+                        Err(error) => {
+                            log::warn!("failed to receive config supply request: {}", error);
+                            return;
                         }
-                        Err(error) => Err(error),
                     };
 
-                    match replier.send(ConfigSupplyResponse::Update { result }) {
-                        Ok(_) => (),
-                        Err(_) => log::warn!("failed to reply with the update result"),
-                    }
-                }
-                ConfigSupplyRequest::GetConfig {
-                    environment,
-                    component,
-                    replier,
-                } => {
-                    let result = self.get_config(&environment, &component);
+                    match request {
+                        ConfigSupplyRequest::Update { replier } => {
+                            let download_path: PathBuf = self.get_download_path();
 
-                    match replier.send(ConfigSupplyResponse::GetConfig { result }) {
-                        Ok(_) => (),
-                        Err(_) => log::warn!("failed to reply with the get configuration result"),
+                            let result = match self
+                                .downloader
+                                .is_new_version_available(&download_path, &self.stage)
+                            {
+                                Ok(is_new_version_available) => {
+                                    if is_new_version_available {
+                                        self.downloader.download(&download_path, &self.stage)
+                                    } else {
+                                        Ok(())
+                                    }
+                                }
+                                Err(error) => Err(error),
+                            };
+
+                            match replier.send(ConfigSupplyResponse::Update { result }) {
+                                Ok(_) => (),
+                                Err(_) => log::warn!("failed to reply with the update result"),
+                            }
+                        }
+                        ConfigSupplyRequest::GetConfig {
+                            environment,
+                            component,
+                            replier,
+                        } => {
+                            let result = self.get_config(&environment, &component);
+
+                            match replier.send(ConfigSupplyResponse::GetConfig { result }) {
+                                Ok(_) => (),
+                                Err(_) => log::warn!("failed to reply with the get configuration result"),
+                            }
+                        }
                     }
                 }
             }
