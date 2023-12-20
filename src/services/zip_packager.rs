@@ -68,13 +68,15 @@ impl Packager for ZipPackager {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::services::packager::Packager;
-    use crate::services::zip_packager::ZipPackager;
-    use cp_core::test_base::get_unit_test_data_path;
     use std::fs::File;
     use std::io::Error;
     use std::path::Path;
+
+    use cp_core::test_base::get_unit_test_data_path;
     use zip::ZipArchive;
+
+    use crate::services::packager::Packager;
+    use crate::services::zip_packager::ZipPackager;
 
     #[test]
     pub fn package_creates_zip_containing_configuration_file() {
