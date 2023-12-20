@@ -28,6 +28,8 @@ async-trait = "0.1"
 serde = "1.0"
 serde_yaml = "0.9"
 
+log4rs = "1.2"
+
 [dev-dependencies]
 
 chrono = { version = "0.4", features = ["clock"] }

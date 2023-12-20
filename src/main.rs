@@ -32,6 +32,7 @@ pub mod timeouts;
 
 #[tokio::main]
 pub async fn main() {
+    log4rs::init_file("log4rs.yaml", Default::default()).expect("failed to initialize logger");
     let config = get_config();
 
     let supply_chain = get_config_supply_chain(&config);
