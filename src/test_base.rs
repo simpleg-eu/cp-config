@@ -5,7 +5,6 @@
 use crate::services::git_downloader::GitDownloader;
 use cp_core::config_reader::ConfigReader;
 use cp_core::secrets::get_secrets_manager;
-use cp_core::secrets::secrets_manager::SecretsManager;
 use std::path::PathBuf;
 
 pub fn get_git_downloader(mut config_path: PathBuf) -> GitDownloader {

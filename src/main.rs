@@ -75,11 +75,10 @@ fn get_config() -> Value {
         .expect("failed to get configuration file path from arguments");
 
     let config_reader = ConfigReader::default();
-    let config = config_reader
-        .read(config_file_path.into())
-        .expect("failed to read the configuration file");
 
-    config
+    config_reader
+        .read(config_file_path.into())
+        .expect("failed to read the configuration file")
 }
 
 fn get_config_supply_chain(config: &Value) -> ConfigSupplyChain {

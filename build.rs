@@ -15,7 +15,7 @@ fn main() {
         .unwrap()
         .join("config.yaml");
 
-    if let Err(err) = std::fs::copy(&source_path, &dest_path) {
+    if let Err(err) = std::fs::copy(source_path, dest_path) {
         eprintln!("error copying file: {}", err);
     } else {
         println!("file copied successfully!");
