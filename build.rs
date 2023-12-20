@@ -16,8 +16,8 @@ fn main() {
         .parent()
         .unwrap();
 
-    let config_dest_path = dest_path.clone().join("config.yaml");
-    let log_dest_path = dest_path.clone().join("log4rs.yaml");
+    let config_dest_path = dest_path.join("config.yaml");
+    let log_dest_path = dest_path.join("log4rs.yaml");
 
     match std::fs::copy(config_source_path, config_dest_path) {
         Ok(_) => (),
