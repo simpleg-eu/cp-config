@@ -12,3 +12,11 @@ pub const FAILED_TO_DELETE_FILE: &str = "failed_to_delete_file";
 pub const CHANNEL_COMMUNICATION_FAILURE: &str = "channel_communication_failure";
 pub const UNEXPECTED_RESPONSE_TYPE: &str = "unexpected_response_type";
 pub const NOT_FOUND: &str = "not_found";
+
+pub fn is_error_kind_clients_fault(error_kind: &str) -> bool {
+    if error_kind == NOT_FOUND {
+        return true;
+    }
+
+    return false;
+}

@@ -10,6 +10,7 @@ use serde::Deserialize;
 use tokio::time::timeout;
 
 use crate::app_state::AppState;
+use crate::error_kind::is_error_kind_clients_fault;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct GetConfigQueryParams {
@@ -35,6 +36,12 @@ pub async fn get_config(
 
     match result {
         Ok(config) => Ok((StatusCode::OK, config)),
-        Err(error) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("{}", error))),
+        Err(error) => {
+            if is_error_kind_clients_fault(error.error_kind()) {
+                return Err((StatusCode::BAD_REQUEST, format!("{}", error)));
+            }
+
+            Err((StatusCode::INTERNAL_SERVER_ERROR, format!("{}", error)))
+        }
     }
 }
