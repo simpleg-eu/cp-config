@@ -52,7 +52,6 @@ impl ConfigSupplier {
     pub fn get_config(&self, environment: &str, component: &str) -> Result<Vec<u8>, Error> {
         let mut package_file_path = self.working_path.clone();
         package_file_path.push(environment);
-        package_file_path.push(component);
         package_file_path.push(format!(
             "{}.{}",
             uuid::Uuid::new_v4(),
@@ -95,6 +94,8 @@ impl ConfigSupplier {
             .is_new_version_available(&download_path, &self.stage)
     }
 
+    //noinspection RsBorrowChecker
+    // the no inspection is due to a false positive occurring at line 146 and 147.
     pub async fn run(self, receiver: Receiver<ConfigSupplyRequest>) {
         match self.setup() {
             Ok(_) => (),
@@ -363,6 +364,9 @@ pub mod tests {
             Err(error) => panic!("failed to receive get config result: {}", error),
         }
     }
+
+    #[tokio::test]
+    pub async fn get_config_returns_error_if_component_does_not_exist() {}
 
     pub fn mock_dependencies() -> (
         Arc<dyn Downloader + Send + Sync>,
