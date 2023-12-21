@@ -60,6 +60,14 @@ impl ConfigSupplier {
 
         let mut source_path = self.working_path.clone();
         source_path.push(environment);
+
+        if !source_path.exists() {
+            return Err(Error::new(
+                NOT_FOUND,
+                format!("environment '{}' does not exist", environment),
+            ));
+        }
+
         source_path.push(component);
 
         if !source_path.exists() {
@@ -378,6 +386,34 @@ pub mod tests {
                 let error = result.expect_err("expected error got ok getting configuration");
 
                 assert_eq!(NOT_FOUND, error.error_kind());
+                assert!(error.message().contains("component"))
+            }
+            _ => panic!("got an unexpected response for 'GetConfig'"),
+        }
+    }
+
+    #[tokio::test]
+    pub async fn get_config_returns_error_if_environment_does_not_exist() {
+        let (sender, replier, reply_receiver) = prepare_config_supplier();
+        sender
+            .send(ConfigSupplyRequest::GetConfig {
+                environment: "non-existent".to_string(),
+                component: "dummy".to_string(),
+                replier,
+            })
+            .await
+            .unwrap();
+
+        match timeout(Duration::from_secs(1u64), reply_receiver)
+            .await
+            .expect("timed out getting config")
+            .expect("expected response but got a 'RecvError'")
+        {
+            ConfigSupplyResponse::GetConfig { result } => {
+                let error = result.expect_err("expected error got ok getting configuration");
+
+                assert_eq!(NOT_FOUND, error.error_kind());
+                assert!(error.message().contains("environment"));
             }
             _ => panic!("got an unexpected response for 'GetConfig'"),
         }
