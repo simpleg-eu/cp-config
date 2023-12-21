@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 
-cp-core = "0.2.9"
+cp-core = "0.2.11"
 
 git2 = "0.18"
 

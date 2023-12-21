@@ -13,7 +13,7 @@ use cp_core::ok_or_return_error;
 use tokio::signal;
 use tokio::signal::unix::SignalKind;
 
-use crate::error_kind::{FAILED_TO_DELETE_FILE, FAILED_TO_READ, FILE_NOT_FOUND};
+use crate::error_kind::{FAILED_TO_DELETE_FILE, FAILED_TO_READ, FILE_NOT_FOUND, NOT_FOUND};
 use crate::models::config_supply_request::ConfigSupplyRequest;
 use crate::models::config_supply_response::ConfigSupplyResponse;
 use crate::services::cleaner::clean_working_directory;
@@ -61,6 +61,13 @@ impl ConfigSupplier {
         let mut source_path = self.working_path.clone();
         source_path.push(environment);
         source_path.push(component);
+
+        if !source_path.exists() {
+            return Err(Error::new(
+                NOT_FOUND,
+                format!("component '{}' does not exist", component),
+            ));
+        }
 
         self.packager
             .package(&source_path, package_file_path.as_path())?;
@@ -231,6 +238,7 @@ pub mod tests {
     use cp_core::test_base::get_unit_test_data_path;
     use tokio::time::timeout;
 
+    use crate::error_kind::NOT_FOUND;
     use crate::models::config_supplier::ConfigSupplier;
     use crate::models::config_supply_request::ConfigSupplyRequest;
     use crate::models::config_supply_response::ConfigSupplyResponse;
@@ -322,23 +330,7 @@ pub mod tests {
     #[tokio::test]
     pub async fn run_get_config_request_sends_config() {
         let expected_file_bytes: Vec<u8> = vec![];
-        let working_dir = uuid::Uuid::new_v4().to_string();
-        let (downloader, builder, packager) = mock_dependencies();
-        let working_path: PathBuf = working_dir.into();
-        let config_supplier = ConfigSupplier::new(
-            get_environments(),
-            downloader,
-            builder,
-            packager,
-            working_path,
-            "dummy".to_string(),
-        );
-        let (sender, receiver) = async_channel::bounded::<ConfigSupplyRequest>(1024usize);
-        tokio::spawn(async move {
-            config_supplier.run(receiver).await;
-        });
-        let (replier, reply_receiver) = tokio::sync::oneshot::channel::<ConfigSupplyResponse>();
-
+        let (sender, replier, reply_receiver) = prepare_config_supplier();
         sender
             .send(ConfigSupplyRequest::GetConfig {
                 environment: "dummy".to_string(),
@@ -348,7 +340,7 @@ pub mod tests {
             .await
             .unwrap();
 
-        match timeout(Duration::from_secs(1), reply_receiver)
+        match timeout(Duration::from_secs(1u64), reply_receiver)
             .await
             .unwrap()
         {
@@ -366,7 +358,30 @@ pub mod tests {
     }
 
     #[tokio::test]
-    pub async fn get_config_returns_error_if_component_does_not_exist() {}
+    pub async fn get_config_returns_error_if_component_does_not_exist() {
+        let (sender, replier, reply_receiver) = prepare_config_supplier();
+        sender
+            .send(ConfigSupplyRequest::GetConfig {
+                environment: "dummy".to_string(),
+                component: "non-existent".to_string(),
+                replier,
+            })
+            .await
+            .unwrap();
+
+        match timeout(Duration::from_secs(1u64), reply_receiver)
+            .await
+            .expect("timed out getting config")
+            .expect("expected response but got a 'RecvError'")
+        {
+            ConfigSupplyResponse::GetConfig { result } => {
+                let error = result.expect_err("expected error got ok getting configuration");
+
+                assert_eq!(NOT_FOUND, error.error_kind());
+            }
+            _ => panic!("got an unexpected response for 'GetConfig'"),
+        }
+    }
 
     pub fn mock_dependencies() -> (
         Arc<dyn Downloader + Send + Sync>,
@@ -376,7 +391,15 @@ pub mod tests {
         let mut mock_downloader = MockDownloader::new();
         mock_downloader.expect_download().returning(|_, _| Ok(()));
         let mut mock_builder = MockConfigBuilder::new();
-        mock_builder.expect_build().returning(|_, _, _| Ok(()));
+        mock_builder.expect_build().returning(|_, _, target_path| {
+            let mut dummy_component_path = target_path.clone();
+            dummy_component_path.push("dummy");
+            dummy_component_path.push("components");
+            dummy_component_path.push("dummy");
+            std::fs::create_dir_all(dummy_component_path)?;
+
+            Ok(())
+        });
         let mut mock_packager = MockPackager::new();
         mock_packager
             .expect_package()
@@ -421,5 +444,30 @@ pub mod tests {
             working_path,
             "dummy".to_string(),
         )
+    }
+
+    fn prepare_config_supplier() -> (
+        async_channel::Sender<ConfigSupplyRequest>,
+        tokio::sync::oneshot::Sender<ConfigSupplyResponse>,
+        tokio::sync::oneshot::Receiver<ConfigSupplyResponse>,
+    ) {
+        let working_dir = uuid::Uuid::new_v4().to_string();
+        let (downloader, builder, packager) = mock_dependencies();
+        let working_path: PathBuf = working_dir.into();
+        let config_supplier = ConfigSupplier::new(
+            get_environments(),
+            downloader,
+            builder,
+            packager,
+            working_path,
+            "dummy".to_string(),
+        );
+        let (sender, receiver) = async_channel::bounded::<ConfigSupplyRequest>(1024usize);
+        tokio::spawn(async move {
+            config_supplier.run(receiver).await;
+        });
+        let (replier, reply_receiver) = tokio::sync::oneshot::channel::<ConfigSupplyResponse>();
+
+        (sender, replier, reply_receiver)
     }
 }
