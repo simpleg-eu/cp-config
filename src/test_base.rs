@@ -2,12 +2,17 @@
  * Copyright (c) Gabriel Amihalachioaie, SimpleG 2023.
  */
 
-use crate::services::git_downloader::GitDownloader;
+use std::path::PathBuf;
+use std::thread;
+use std::time::Duration;
+
 use cp_core::config_reader::ConfigReader;
 use cp_core::secrets::get_secrets_manager;
-use std::path::PathBuf;
+
+use crate::services::git_downloader::GitDownloader;
 
 pub fn get_git_downloader(mut config_path: PathBuf) -> GitDownloader {
+    thread::sleep(Duration::from_millis(500u64));
     config_path.push("config.yaml");
 
     let config_reader: ConfigReader = ConfigReader::default();
