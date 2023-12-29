@@ -13,3 +13,9 @@ TcpListener:
   Port: "3000"
 Timeouts:
   ControllersConfigGetConfig: 15
+Authorization:
+  Issuers:
+    - "https://simpleg.eu.auth0.com/"
+  Audience:
+    - "cp-config"
+  JwksUri: "https://simpleg.eu.auth0.com/.well-known/jwks.json"

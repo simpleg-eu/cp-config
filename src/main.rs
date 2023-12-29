@@ -6,6 +6,8 @@ use std::sync::Arc;
 
 use axum::routing::get;
 use axum::Router;
+use cp_core::auth::authorization::Authorization;
+use cp_core::auth::jwt_token_validator::{try_get_jwks, JwtTokenValidator};
 use cp_core::config_reader::ConfigReader;
 use cp_core::secrets::get_secrets_manager;
 use serde_yaml::Value;
@@ -44,9 +46,12 @@ pub async fn main() {
     )
     .expect("failed to deserialize 'Timeouts'");
 
+    let authorization = get_authorization(&config).await;
+
     let app_state = AppState {
         config_supply_chain: Arc::new(supply_chain),
         timeouts,
+        authorization,
     };
 
     let app = Router::new()
@@ -156,6 +161,53 @@ fn get_config_supply_chain(config: &Value) -> ConfigSupplyChain {
 
     ConfigSupplyChain::try_new(config_suppliers_count as usize, supplier_init)
         .expect("failed to get config supply chain")
+}
+
+async fn get_authorization(config: &Value) -> Authorization {
+    let authorization = config
+        .get("Authorization")
+        .expect("failed to get 'Authorization' from the configuration file");
+
+    let issuers: Vec<String> = authorization
+        .get("Issuers")
+        .expect("failed to get 'Issuers' from 'Authorization'")
+        .as_sequence()
+        .expect("failed to get 'Issuers' as sequence")
+        .iter()
+        .map(|v| {
+            v.as_str()
+                .expect("failed to get 'Issuers' value as string")
+                .to_string()
+        })
+        .collect();
+
+    let audience: Vec<String> = authorization
+        .get("Audience")
+        .expect("failed to get 'Audience' from 'Authorization'")
+        .as_sequence()
+        .expect("failed to get 'Audience' as sequence")
+        .iter()
+        .map(|v| {
+            v.as_str()
+                .expect("failed to get 'Audience' value as string")
+                .to_string()
+        })
+        .collect();
+
+    let jwks_uri = authorization
+        .get("JwksUri")
+        .expect("failed to get 'JwksUri' from 'Authorization'")
+        .as_str()
+        .expect("failed to get 'JwksUri' as string")
+        .to_string();
+
+    let jwk_set = try_get_jwks(jwks_uri.as_str())
+        .await
+        .expect("expected 'JwkSet'");
+
+    let jwt_token_validator = JwtTokenValidator::new(jwk_set, issuers, audience);
+
+    Authorization::new(Arc::new(jwt_token_validator))
 }
 
 fn get_address(config: &Value) -> String {

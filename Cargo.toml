@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 
-cp-core = "0.2.12"
+cp-core = { version = "0.2.22", features = ["auth"] }
 
 git2 = "0.18"
 
@@ -34,4 +34,4 @@ log4rs = "1.2"
 
 chrono = { version = "0.4", features = ["clock"] }
 
-mockall = "0.12.0"
+mockall = "0.12"

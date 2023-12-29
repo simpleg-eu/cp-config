@@ -5,7 +5,9 @@
 use std::time::Duration;
 
 use axum::extract::{Query, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
+use cp_core::auth::error_kind::INVALID_TOKEN;
+use cp_core::authorize;
 use serde::Deserialize;
 use tokio::time::timeout;
 
@@ -19,6 +21,7 @@ pub struct GetConfigQueryParams {
 }
 
 pub async fn get_config(
+    headers: HeaderMap,
     Query(params): Query<GetConfigQueryParams>,
     State(state): State<AppState>,
 ) -> Result<(StatusCode, Vec<u8>), (StatusCode, String)> {
@@ -33,6 +36,8 @@ pub async fn get_config(
         Ok(result) => result,
         Err(error) => return Err((StatusCode::REQUEST_TIMEOUT, format!("{}", error))),
     };
+
+    authorize!(state.authorization, headers);
 
     match result {
         Ok(config) => Ok((StatusCode::OK, config)),
