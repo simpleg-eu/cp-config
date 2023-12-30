@@ -87,7 +87,7 @@ jobs:
           path: ./
       - name: Unzip artifact
         run: |
-          unzip app.zip
+          unzip -o app.zip
       - name: Create release
         id: create_release
         uses: actions/create-release@v1
