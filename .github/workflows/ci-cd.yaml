@@ -7,9 +7,8 @@ on:
 
 env:
   SECRETS_MANAGER_ACCESS_TOKEN: ${{ secrets.SECRETS_MANAGER_ACCESS_TOKEN }}
-  PATCH_VERSION: ${{ github.run_number }}
   ARTIFACT_NAME: "le_baguette"
-  VERSION: "${{ vars.MAJOR_VERSION }}.${{ vars.MINOR_VERSION }}.${{ env.PATCH_VERSION }}"
+  VERSION: "${{ vars.MAJOR_VERSION }}.${{ vars.MINOR_VERSION }}.${{ github.run_number }}"
 
 jobs:
   changes:
@@ -91,7 +90,6 @@ jobs:
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
-          PATCH_VERSION: ${{ github.run_number }}
         with:
           tag_name: v${{ env.VERSION }}
           release_name: v${{ env.VERSION }}
