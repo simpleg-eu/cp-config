@@ -28,6 +28,7 @@ jobs:
               - 'src/**'
               - 'Cargo.toml'
               - '.github/workflows/ci-cd.yaml'
+              - 'Dockerfile'
             test:
               - 'test_data/**'
               - 'tests/**'
