@@ -39,6 +39,8 @@ impl ConfigSupplier {
         working_path: PathBuf,
         stage: String,
     ) -> Self {
+        std::fs::create_dir_all(&working_path);
+
         Self {
             environments,
             downloader,
