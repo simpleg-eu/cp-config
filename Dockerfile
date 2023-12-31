@@ -2,7 +2,9 @@ FROM ubuntu:latest
 LABEL authors="Gabriel Amihalachioaie"
 WORKDIR /cp-config
 EXPOSE 3000
-RUN mkdir bin && \
+RUN apt-get update && \
+  apt-get -y install curl unzip &&  \
+  mkdir bin && \
   cd bin && \
   curl -LO https://github.com/bitwarden/sdk/releases/download/bws-v0.3.0/bws-x86_64-unknown-linux-gnu-0.3.0.zip && \
   unzip bws-x86_64-unknown-linux-gnu-0.3.0.zip && \
