@@ -16,6 +16,7 @@ use crate::error_kind::is_error_kind_clients_fault;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct GetConfigQueryParams {
+    pub stage: String,
     pub environment: String,
     pub component: String,
 }
@@ -29,7 +30,7 @@ pub async fn get_config(
         Duration::from_secs(state.timeouts.controllers_config_get_config),
         state
             .config_supply_chain
-            .get_config(&params.environment, &params.component),
+            .get_config(&params.stage, &params.environment, &params.component),
     )
     .await
     {
