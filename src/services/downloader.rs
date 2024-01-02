@@ -13,6 +13,7 @@ use mockall::automock;
 pub trait Downloader {
     ///
     /// Downloads the latest state of the configuration files which are part of the specified stage.
+    /// If the target path contains a previous download, it will be updated on each call to the specified stage.
     ///
     /// # Arguments
     ///

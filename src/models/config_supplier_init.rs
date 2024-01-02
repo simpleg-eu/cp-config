@@ -13,5 +13,4 @@ pub struct ConfigSupplierInit {
     pub downloader: Arc<dyn Downloader + Send + Sync>,
     pub builder: Arc<dyn ConfigBuilder + Send + Sync>,
     pub packager: Arc<dyn Packager + Send + Sync>,
-    pub stage: String,
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Gabriel Amihalachioaie, SimpleG 2023.
+ * Copyright (c) Gabriel Amihalachioaie, SimpleG 2024.
  */
 
 use std::sync::Arc;
@@ -138,19 +138,24 @@ fn get_config_supply_chain(config: &Value) -> ConfigSupplyChain {
     let builder: Arc<dyn ConfigBuilder + Send + Sync> =
         Arc::new(MicroconfigConfigBuilder::default());
     let packager: Arc<dyn Packager + Send + Sync> = Arc::new(ZipPackager::default());
-    let stage = config
-        .get("Stage")
-        .expect("failed to get 'Stage' from the configuration file")
-        .as_str()
-        .expect("failed to read 'Stage' as string")
-        .to_string();
+    let static_stages: Vec<String> = config
+        .get("StaticStages")
+        .expect("failed to get 'StaticStages' from the configuration file")
+        .as_sequence()
+        .expect("failed to read 'StaticStages' as sequence")
+        .iter()
+        .map(|v| {
+            v.as_str()
+                .expect("failed to read 'StaticStages' value as string")
+                .to_string()
+        })
+        .collect();
 
     let supplier_init = ConfigSupplierInit {
         environments,
         downloader,
         builder,
         packager,
-        stage,
     };
 
     let config_suppliers_count = config
@@ -159,8 +164,12 @@ fn get_config_supply_chain(config: &Value) -> ConfigSupplyChain {
         .as_u64()
         .expect("failed to read 'ConfigSuppliersCount' as u64");
 
-    ConfigSupplyChain::try_new(config_suppliers_count as usize, supplier_init)
-        .expect("failed to get config supply chain")
+    ConfigSupplyChain::try_new(
+        config_suppliers_count as usize,
+        static_stages,
+        supplier_init,
+    )
+    .expect("failed to get config supply chain")
 }
 
 async fn get_authorization(config: &Value) -> Authorization {
