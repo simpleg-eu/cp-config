@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Gabriel Amihalachioaie, SimpleG 2023.
+ * Copyright (c) Gabriel Amihalachioaie, SimpleG 2024.
  */
 
 use async_channel::{Receiver, Sender};
@@ -7,10 +7,10 @@ use cp_core::error::Error;
 
 use crate::error::ConfigError;
 use crate::error_kind::UNEXPECTED_RESPONSE_TYPE;
-use crate::models::config_supplier::ConfigSupplier;
 use crate::models::config_supplier_init::ConfigSupplierInit;
 use crate::models::config_supply_request::ConfigSupplyRequest;
 use crate::models::config_supply_response::ConfigSupplyResponse;
+use crate::models::static_config_supplier::StaticConfigSupplier;
 use crate::return_error;
 
 pub struct ConfigSupplyChain {
@@ -41,7 +41,12 @@ impl ConfigSupplyChain {
         Ok(supply_chain)
     }
 
-    pub async fn get_config(&self, environment: &str, component: &str) -> Result<Vec<u8>, Error> {
+    pub async fn get_config(
+        &self,
+        stage: &str,
+        environment: &str,
+        component: &str,
+    ) -> Result<Vec<u8>, Error> {
         let current_suppliers_count = self.sender.receiver_count() - 1;
         if current_suppliers_count < self.suppliers_count {
             for _ in 0..(self.suppliers_count - current_suppliers_count) {
@@ -54,6 +59,7 @@ impl ConfigSupplyChain {
         return_error!(
             self.sender
                 .send(ConfigSupplyRequest::GetConfig {
+                    stage: stage.to_string(),
                     environment: environment.to_string(),
                     component: component.to_string(),
                     replier,
@@ -77,7 +83,7 @@ impl ConfigSupplyChain {
 
     fn add_supplier(&self) -> Result<(), Error> {
         let working_path = uuid::Uuid::new_v4().to_string();
-        let supplier = ConfigSupplier::new(
+        let supplier = StaticConfigSupplier::new(
             self.config_supplier_init.environments.clone(),
             self.config_supplier_init.downloader.clone(),
             self.config_supplier_init.builder.clone(),
@@ -97,10 +103,11 @@ impl ConfigSupplyChain {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::models::config_supplier::tests::get_environments;
-    use crate::models::config_supplier::tests::mock_dependencies;
     use crate::models::config_supplier_init::ConfigSupplierInit;
     use crate::models::config_supply_chain::ConfigSupplyChain;
+    use crate::models::dynamic_config_supplier::tests::TEST_STAGE;
+    use crate::models::static_config_supplier::tests::get_environments;
+    use crate::models::static_config_supplier::tests::mock_dependencies;
 
     #[tokio::test]
     pub async fn try_new_creates_specified_config_suppliers() {
@@ -140,7 +147,10 @@ pub mod tests {
         )
         .unwrap();
 
-        let config = supply_chain.get_config("dummy", "dummy").await.unwrap();
+        let config = supply_chain
+            .get_config(TEST_STAGE, "dummy", "dummy")
+            .await
+            .unwrap();
 
         assert_eq!(expected_bytes, config);
     }
@@ -163,7 +173,10 @@ pub mod tests {
         .unwrap();
         supply_chain.suppliers_count = expected_suppliers;
 
-        let _ = supply_chain.get_config("dummy", "dummy").await.unwrap();
+        let _ = supply_chain
+            .get_config(TEST_STAGE, "dummy", "dummy")
+            .await
+            .unwrap();
 
         // + 1 in order to include the receiver held within the ConfigSupplyChain struct.
         assert_eq!(expected_suppliers + 1, supply_chain.sender.receiver_count());

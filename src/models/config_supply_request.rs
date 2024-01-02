@@ -7,9 +7,11 @@ use tokio::sync::oneshot::Sender;
 
 pub enum ConfigSupplyRequest {
     Update {
+        stage: String,
         replier: Sender<ConfigSupplyResponse>,
     },
     GetConfig {
+        stage: String,
         environment: String,
         component: String,
         replier: Sender<ConfigSupplyResponse>,
