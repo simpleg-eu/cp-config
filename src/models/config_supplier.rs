@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Gabriel Amihalachioaie, SimpleG 2023.
+ * Copyright (c) Gabriel Amihalachioaie, SimpleG 2024.
  */
 
 use std::fs::File;
@@ -27,7 +27,7 @@ pub struct ConfigSupplier {
     builder: Arc<dyn ConfigBuilder + Send + Sync>,
     packager: Arc<dyn Packager + Send + Sync>,
     working_path: PathBuf,
-    stage: String,
+    last_stage: Option<String>,
 }
 
 impl ConfigSupplier {
@@ -37,21 +37,115 @@ impl ConfigSupplier {
         builder: Arc<dyn ConfigBuilder + Send + Sync>,
         packager: Arc<dyn Packager + Send + Sync>,
         working_path: PathBuf,
-        stage: String,
     ) -> Self {
-        std::fs::create_dir_all(&working_path);
-
         Self {
             environments,
             downloader,
             builder,
             packager,
             working_path,
-            stage,
+            last_stage: None,
         }
     }
 
-    pub fn get_config(&self, environment: &str, component: &str) -> Result<Vec<u8>, Error> {
+    //noinspection RsBorrowChecker
+    // the no inspection is due to a false positive occurring at line 90 and 91.
+    pub async fn run(mut self, receiver: Receiver<ConfigSupplyRequest>) {
+        let mut sigint = match signal::unix::signal(SignalKind::interrupt()) {
+            Ok(sigint) => sigint,
+            Err(error) => {
+                log::error!("failed to setup signal interrupt stream: {}", error);
+                return;
+            }
+        };
+
+        let mut sigterm = match signal::unix::signal(SignalKind::terminate()) {
+            Ok(sigterm) => sigterm,
+            Err(error) => {
+                log::error!("failed to setup signal terminate stream: {}", error);
+                return;
+            }
+        };
+
+        let mut sigquit = match signal::unix::signal(SignalKind::quit()) {
+            Ok(sigquit) => sigquit,
+            Err(error) => {
+                log::error!("failed to setup signal quit stream: {}", error);
+                return;
+            }
+        };
+
+        loop {
+            tokio::select! {
+                _ = sigint.recv() => {
+                    return;
+                },
+                _ = sigterm.recv() => {
+                    return;
+                },
+                _ = sigquit.recv() => {
+                    return;
+                },
+                result = receiver.recv() => {
+                    let request = match result {
+                        Ok(request) => request,
+                        Err(error) => {
+                            log::warn!("failed to receive config supply request: {}", error);
+                            return;
+                        }
+                    };
+
+                    match request {
+                        ConfigSupplyRequest::Update { stage, replier } => {
+                            match self.initialize_stage(&stage) {
+                                Ok(_) => (),
+                                Err(error) => log::warn!("failed to initialize stage: {}", error),
+                            }
+                            let download_path: PathBuf = self.get_download_path();
+
+                            let result = match self
+                                .downloader
+                                .is_new_version_available(&download_path, &stage)
+                            {
+                                Ok(is_new_version_available) => {
+                                    if is_new_version_available {
+                                        self.downloader.download(&download_path, &stage)
+                                    } else {
+                                        Ok(())
+                                    }
+                                }
+                                Err(error) => Err(error),
+                            };
+
+                            match replier.send(ConfigSupplyResponse::Update { result }) {
+                                Ok(_) => (),
+                                Err(_) => log::warn!("failed to reply with the update result"),
+                            }
+                        }
+                        ConfigSupplyRequest::GetConfig {
+                            stage,
+                            environment,
+                            component,
+                            replier,
+                        } => {
+                            match self.initialize_stage(&stage) {
+                                Ok(_) => (),
+                                Err(error) => log::warn!("failed to initialize stage: {}", error),
+                            }
+                            let result = self.get_config(&environment, &component);
+
+                            match replier.send(ConfigSupplyResponse::GetConfig { result }) {
+                                Ok(_) => (),
+                                Err(_) => log::warn!("failed to reply with the get configuration result"),
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn get_config(&self, environment: &str, component: &str) -> Result<Vec<u8>, Error> {
         let mut package_file_path = self.working_path.clone();
         package_file_path.push(environment);
         package_file_path.push(format!(
@@ -105,111 +199,55 @@ impl ConfigSupplier {
         Ok(buffer)
     }
 
-    pub fn is_new_version_available(&self) -> Result<bool, Error> {
+    fn is_new_version_available(&self, stage: &str) -> Result<bool, Error> {
         let download_path = self.get_download_path();
         self.downloader
-            .is_new_version_available(&download_path, &self.stage)
+            .is_new_version_available(&download_path, stage)
     }
 
-    //noinspection RsBorrowChecker
-    // the no inspection is due to a false positive occurring at line 146 and 147.
-    pub async fn run(self, receiver: Receiver<ConfigSupplyRequest>) {
-        match self.setup() {
-            Ok(_) => (),
-            Err(error) => {
-                log::error!("failed to setup config supplier: {}", error);
-                return;
-            }
-        }
+    fn get_download_path(&self) -> PathBuf {
+        let mut download_path = self.working_path.clone();
+        download_path.push("download");
 
-        let mut sigint = match signal::unix::signal(SignalKind::interrupt()) {
-            Ok(sigint) => sigint,
-            Err(error) => {
-                log::error!("failed to setup signal interrupt stream: {}", error);
-                return;
-            }
-        };
+        download_path
+    }
 
-        let mut sigterm = match signal::unix::signal(SignalKind::terminate()) {
-            Ok(sigterm) => sigterm,
-            Err(error) => {
-                log::error!("failed to setup signal terminate stream: {}", error);
-                return;
-            }
-        };
-
-        let mut sigquit = match signal::unix::signal(SignalKind::quit()) {
-            Ok(sigquit) => sigquit,
-            Err(error) => {
-                log::error!("failed to setup signal quit stream: {}", error);
-                return;
-            }
-        };
-
-        loop {
-            tokio::select! {
-                _ = sigint.recv() => {
-                    return;
-                },
-                _ = sigterm.recv() => {
-                    return;
-                },
-                _ = sigquit.recv() => {
-                    return;
-                },
-                result = receiver.recv() => {
-                    let request = match result {
-                        Ok(request) => request,
-                        Err(error) => {
-                            log::warn!("failed to receive config supply request: {}", error);
-                            return;
-                        }
-                    };
-
-                    match request {
-                        ConfigSupplyRequest::Update { replier } => {
-                            let download_path: PathBuf = self.get_download_path();
-
-                            let result = match self
-                                .downloader
-                                .is_new_version_available(&download_path, &self.stage)
-                            {
-                                Ok(is_new_version_available) => {
-                                    if is_new_version_available {
-                                        self.downloader.download(&download_path, &self.stage)
-                                    } else {
-                                        Ok(())
-                                    }
-                                }
-                                Err(error) => Err(error),
-                            };
-
-                            match replier.send(ConfigSupplyResponse::Update { result }) {
-                                Ok(_) => (),
-                                Err(_) => log::warn!("failed to reply with the update result"),
-                            }
-                        }
-                        ConfigSupplyRequest::GetConfig {
-                            environment,
-                            component,
-                            replier,
-                        } => {
-                            let result = self.get_config(&environment, &component);
-
-                            match replier.send(ConfigSupplyResponse::GetConfig { result }) {
-                                Ok(_) => (),
-                                Err(_) => log::warn!("failed to reply with the get configuration result"),
-                            }
-                        }
-                    }
+    fn initialize_stage(&mut self, stage: &str) -> Result<(), Error> {
+        match &self.last_stage {
+            Some(last_stage) => {
+                if last_stage != stage {
+                    self.setup(stage)?;
                 }
             }
+            None => self.setup(stage)?,
         }
+
+        Ok(())
     }
 
-    fn setup(&self) -> Result<(), Error> {
+    fn setup(&mut self, stage: &str) -> Result<(), Error> {
         let download_path: PathBuf = self.get_download_path();
-        self.downloader.download(&download_path, &self.stage)?;
+        match std::fs::remove_dir_all(&self.working_path) {
+            Ok(_) => (),
+            Err(error) => {
+                log::warn!(
+                    "failed to clean working path '{:?}': {}",
+                    &self.working_path,
+                    error
+                );
+            }
+        }
+        match std::fs::create_dir_all(&self.working_path) {
+            Ok(_) => (),
+            Err(error) => {
+                log::warn!(
+                    "failed to create working path '{:?}': {}",
+                    &self.working_path,
+                    error
+                );
+            }
+        }
+        self.downloader.download(&download_path, stage)?;
 
         for environment in self.environments.as_slice() {
             let mut target_path = self.working_path.clone();
@@ -219,14 +257,9 @@ impl ConfigSupplier {
                 .build(environment, download_path.clone(), target_path)?;
         }
 
+        self.last_stage = Some(stage.to_string());
+
         Ok(())
-    }
-
-    fn get_download_path(&self) -> PathBuf {
-        let mut download_path = self.working_path.clone();
-        download_path.push("download");
-
-        download_path
     }
 }
 
@@ -259,12 +292,17 @@ pub mod tests {
     use crate::services::zip_packager::ZipPackager;
     use crate::test_base::get_git_downloader;
 
+    pub const TEST_STAGE: &str = "dummy";
+    pub const ALT_TEST_STAGE: &str = "dummy-2";
+
     #[test]
     pub fn setup_builds_all_environments() {
         let working_dir = format!("./{}", uuid::Uuid::new_v4());
-        let supplier = get_config_supplier(working_dir.clone());
+        let mut supplier = get_config_supplier(working_dir.clone());
 
-        supplier.setup().expect("failed to setup config supplier");
+        supplier
+            .setup(TEST_STAGE)
+            .expect("failed to setup config supplier");
 
         for environment in get_environments() {
             assert!(std::fs::metadata(format!("{}/{}", working_dir, environment)).is_ok());
@@ -279,8 +317,10 @@ pub mod tests {
     #[test]
     pub fn get_config_returns_bytes_of_zip_file() {
         let working_dir = format!("./{}", uuid::Uuid::new_v4());
-        let supplier = get_config_supplier(working_dir);
-        supplier.setup().expect("failed to setup config manager");
+        let mut supplier = get_config_supplier(working_dir);
+        supplier
+            .setup(TEST_STAGE)
+            .expect("failed to setup config manager");
 
         let result = supplier.get_config("dummy", "dummy");
 
@@ -312,7 +352,6 @@ pub mod tests {
             builder,
             packager,
             working_path,
-            "dummy".to_string(),
         );
         let (sender, receiver) = async_channel::bounded::<ConfigSupplyRequest>(1024usize);
         tokio::spawn(async move {
@@ -321,7 +360,10 @@ pub mod tests {
         let (replier, reply_receiver) = tokio::sync::oneshot::channel::<ConfigSupplyResponse>();
 
         sender
-            .send(ConfigSupplyRequest::Update { replier })
+            .send(ConfigSupplyRequest::Update {
+                stage: TEST_STAGE.to_string(),
+                replier,
+            })
             .await
             .unwrap();
 
@@ -343,6 +385,7 @@ pub mod tests {
         let (sender, replier, reply_receiver) = prepare_config_supplier();
         sender
             .send(ConfigSupplyRequest::GetConfig {
+                stage: TEST_STAGE.to_string(),
                 environment: "dummy".to_string(),
                 component: "dummy".to_string(),
                 replier,
@@ -372,6 +415,7 @@ pub mod tests {
         let (sender, replier, reply_receiver) = prepare_config_supplier();
         sender
             .send(ConfigSupplyRequest::GetConfig {
+                stage: TEST_STAGE.to_string(),
                 environment: "dummy".to_string(),
                 component: "non-existent".to_string(),
                 replier,
@@ -399,6 +443,7 @@ pub mod tests {
         let (sender, replier, reply_receiver) = prepare_config_supplier();
         sender
             .send(ConfigSupplyRequest::GetConfig {
+                stage: TEST_STAGE.to_string(),
                 environment: "non-existent".to_string(),
                 component: "dummy".to_string(),
                 replier,
@@ -480,7 +525,6 @@ pub mod tests {
             builder,
             packager,
             working_path,
-            "dummy".to_string(),
         )
     }
 
@@ -498,7 +542,6 @@ pub mod tests {
             builder,
             packager,
             working_path,
-            "dummy".to_string(),
         );
         let (sender, receiver) = async_channel::bounded::<ConfigSupplyRequest>(1024usize);
         tokio::spawn(async move {
