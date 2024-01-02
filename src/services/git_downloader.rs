@@ -1,5 +1,5 @@
 /*
- * Copyright (c) Gabriel Amihalachioaie, SimpleG 2023.
+ * Copyright (c) Gabriel Amihalachioaie, SimpleG 2024.
  */
 
 use std::path::{Path, PathBuf};
@@ -291,6 +291,7 @@ mod tests {
     use crate::test_base::get_git_downloader;
 
     const TEST_STAGE: &str = "dummy";
+    const ALT_TEST_STAGE: &str = "dummy-2";
 
     #[test]
     pub fn download_downloads_expected_files() {
@@ -334,6 +335,23 @@ mod tests {
         assert!(write_result.is_ok());
         assert!(version_result.is_ok());
         assert!(version_result.unwrap());
+    }
+
+    #[test]
+    pub fn download_switch_stage_works() {
+        let (working_directory, downloader, download_path) = prepare_downloader();
+        let _ = downloader.download(&download_path, TEST_STAGE);
+        let result = downloader.download(&download_path, ALT_TEST_STAGE);
+
+        let extra_file_exists: bool = std::fs::metadata(format!(
+            "{}/download/dummy/extra_file.yaml",
+            working_directory
+        ))
+        .is_ok();
+
+        let _ = std::fs::remove_dir_all(working_directory);
+        assert!(result.is_ok());
+        assert!(extra_file_exists);
     }
 
     fn download() -> (Result<(), Error>, String, bool, bool) {
