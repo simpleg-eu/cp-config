@@ -345,7 +345,7 @@ mod tests {
         ))
         .is_ok();
         let expected_file_exists_too: bool = std::fs::metadata(format!(
-            "{}/download/dummy/this_file_must_exist.yaml",
+            "{}/download/dummy/this_file_must_exist_too.yaml",
             working_directory
         ))
         .is_ok();
