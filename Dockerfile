@@ -14,5 +14,5 @@ RUN apt-get update && \
   unzip microconfig-linux.zip && \
   chmod +x microconfig && \
   cd ../
-COPY ./config.yaml ./log4rs.yaml ./cp-config ./
-ENTRYPOINT ["./cp-config", "config.yaml"]
+COPY ./cp-config ./
+ENTRYPOINT ["./cp-config", "/cp-config/config/config.yaml"]
