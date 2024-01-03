@@ -56,6 +56,8 @@ pub async fn main() {
 
     let app = Router::new()
         .route("/config", get(controllers::config::get_config))
+        .route("/healthz/ready", get(controllers::healthz::get_readiness))
+        .route("/healthz/live", get(controllers::healthz::get_liveness))
         .with_state(app_state);
     let address = get_address(&config);
     let listener = tokio::net::TcpListener::bind(&address)
