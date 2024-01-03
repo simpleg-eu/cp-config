@@ -13,7 +13,7 @@ use crate::services::git_downloader::GitDownloader;
 
 pub fn get_git_downloader(mut config_path: PathBuf) -> GitDownloader {
     thread::sleep(Duration::from_millis(500u64));
-    config_path.push("config/config.yaml");
+    config_path.push("config.yaml");
 
     let config_reader: ConfigReader = ConfigReader::default();
     let config = config_reader.read(config_path).unwrap();
