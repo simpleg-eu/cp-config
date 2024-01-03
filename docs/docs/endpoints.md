@@ -6,6 +6,7 @@
 
 Query parameters:
 
+* `stage`: for now, git branch from which the configuration will be retrieved.
 * `environment`: environment from which the configuration will be retrieved.
 * `component`: component from which the configuration will be retrieved.
 
