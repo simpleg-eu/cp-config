@@ -63,7 +63,7 @@ jobs:
         run: |
           cargo build --release
           mv ./target/release/cp-config ./
-          zip app.zip cp-config config.yaml log4rs.yaml
+          zip app.zip cp-config ./config
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
