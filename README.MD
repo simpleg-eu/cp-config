@@ -21,6 +21,9 @@ so we add `openssl` to our path:
 Finally, we build the project by using:
 `cargo build --release`
 
+Afterward, we must install `bws` and `microconfig` within a directory within the `$PATH` variable,
+i.e. `/usr/local/bin`.
+
 ## How to deploy locally
 
 In order to run a local instance of `cp-config`, we must have `Docker Desktop`already installed on
