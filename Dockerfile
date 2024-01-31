@@ -1,11 +1,12 @@
 FROM rust:1.75-bookworm AS build
 WORKDIR /src
 COPY . .
-RUN mkdir -p /etc/apt/keyrings && \
-  wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | tee /etc/apt/keyrings/adoptium.asc && \
-  echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list && \
+RUN apt-get update && \
+  apt install -y curl apt-transport-https gpg ca-certificates && \
+  curl -s https://repos.azul.com/azul-repo.key | gpg --dearmor -o /usr/share/keyrings/azul.gpg && \
+  echo "deb [signed-by=/usr/share/keyrings/azul.gpg] https://repos.azul.com/zulu/deb stable main" | tee /etc/apt/sources.list.d/zulu.list && \
   apt-get update && \
-  apt-get -y install git temurin-8-jdk ca-certificates && \
+  apt-get -y install git zulu8-jdk && \
   git clone https://github.com/simpleg-eu/bitwarden-sdk.git && \
   cd bitwarden-sdk && \
   cargo build --release && \
