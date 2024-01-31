@@ -23,8 +23,6 @@ Finally, we build the project by using:
 
 ## How to deploy locally
 
-### Linux / MacOS
-
 In order to run a local instance of `cp-config`, we must have `Docker Desktop`already installed on
 our machine. Once you have `docker` installed, just run following command:
 `docker compose up`
