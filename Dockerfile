@@ -1,18 +1,35 @@
-FROM ubuntu:latest
+FROM rust:1.75-bookworm AS build
+WORKDIR /src
+COPY . .
+RUN mkdir -p /etc/apt/keyrings && \
+  wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | tee /etc/apt/keyrings/adoptium.asc && \
+  echo "deb [signed-by=/etc/apt/keyrings/adoptium.asc] https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list && \
+  apt-get update && \
+  apt-get -y install git temurin-8-jdk ca-certificates && \
+  git clone https://github.com/simpleg-eu/bitwarden-sdk.git && \
+  cd bitwarden-sdk && \
+  cargo build --release && \
+  mv ./target/release/bws ./ && \
+  cd ../ && \
+  git clone https://github.com/simpleg-eu/microconfig.git && \
+  cd microconfig && \
+  ./gradlew shadowJar && \
+  mv ./microconfig-cli/build/libs/microconfig-cli-*-all.jar ./microconfig.jar && \
+  ./.github/scripts/native/graalvm-linux.sh && \
+  ./.github/scripts/native/native.sh && \
+  cd ../ && \
+  mkdir bin && \
+  mv ./bitwarden-sdk/bws ./bin && \
+  mv ./microconfig/microconfig ./bin && \
+  cargo build --release
+
+FROM ubuntu:latest AS final
 LABEL authors="Gabriel Amihalachioaie"
 WORKDIR /cp-config
 EXPOSE 3000
 ENV PATH="${PATH}:/cp-config/bin"
+COPY --from=build /src/bin ./bin
+COPY --from=build /src/target/release/cp-config ./
 RUN apt-get update && \
-  apt-get -y install curl unzip &&  \
-  mkdir bin && \
-  cd bin && \
-  curl -LO https://github.com/bitwarden/sdk/releases/download/bws-v0.3.0/bws-x86_64-unknown-linux-gnu-0.3.0.zip && \
-  unzip bws-x86_64-unknown-linux-gnu-0.3.0.zip && \
-  chmod +x bws && \
-  curl -LO https://github.com/microconfig/microconfig/releases/download/v4.9.2/microconfig-linux.zip && \
-  unzip microconfig-linux.zip && \
-  chmod +x microconfig && \
-  cd ../
-COPY ./cp-config ./
+    apt-get -y install ca-certificates
 ENTRYPOINT ["./cp-config", "/cp-config/config/config.yaml"]
