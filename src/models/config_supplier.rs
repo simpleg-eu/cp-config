@@ -96,14 +96,20 @@ impl ConfigSupplier {
                     };
 
                     match request {
-                        ConfigSupplyRequest::Update { stage, replier } => {
+                        ConfigSupplyRequest::GetConfig {
+                            stage,
+                            environment,
+                            component,
+                            replier,
+                        } => {
                             match self.initialize_stage(&stage) {
                                 Ok(_) => (),
                                 Err(error) => log::warn!("failed to initialize stage: {}", error),
                             }
+
                             let download_path: PathBuf = self.get_download_path();
 
-                            let result = match self
+                            let update_result = match self
                                 .downloader
                                 .is_new_version_available(&download_path, &stage)
                             {
@@ -117,21 +123,15 @@ impl ConfigSupplier {
                                 Err(error) => Err(error),
                             };
 
-                            match replier.send(ConfigSupplyResponse::Update { result }) {
-                                Ok(_) => (),
-                                Err(_) => log::warn!("failed to reply with the update result"),
+                            if update_result.is_err() {
+                                match replier.send(ConfigSupplyResponse::GetConfig { result: Err(update_result.unwrap_err()) }) {
+                                    Ok(_) => (),
+                                    Err(_) => log::warn!("failed to reply with the get configuration result"),
+                                }
+
+                                return;
                             }
-                        }
-                        ConfigSupplyRequest::GetConfig {
-                            stage,
-                            environment,
-                            component,
-                            replier,
-                        } => {
-                            match self.initialize_stage(&stage) {
-                                Ok(_) => (),
-                                Err(error) => log::warn!("failed to initialize stage: {}", error),
-                            }
+
                             let result = self.get_config(&environment, &component);
 
                             match replier.send(ConfigSupplyResponse::GetConfig { result }) {
@@ -333,53 +333,6 @@ pub mod tests {
     }
 
     #[tokio::test]
-    pub async fn run_updates_when_receives_update_request() {
-        let working_dir = uuid::Uuid::new_v4().to_string();
-        let mut mock_downloader = MockDownloader::new();
-        mock_downloader.expect_download().returning(|_, _| Ok(()));
-        mock_downloader
-            .expect_is_new_version_available()
-            .returning(|_, _| Ok(true));
-        let mut mock_builder = MockConfigBuilder::new();
-        mock_builder.expect_build().returning(|_, _, _| Ok(()));
-        let downloader: Arc<dyn Downloader + Send + Sync> = Arc::new(mock_downloader);
-        let builder: Arc<dyn ConfigBuilder + Send + Sync> = Arc::new(mock_builder);
-        let working_path: PathBuf = working_dir.into();
-        let packager: Arc<dyn Packager + Send + Sync> = Arc::new(ZipPackager::default());
-        let config_supplier = ConfigSupplier::new(
-            get_environments(),
-            downloader,
-            builder,
-            packager,
-            working_path,
-        );
-        let (sender, receiver) = async_channel::bounded::<ConfigSupplyRequest>(1024usize);
-        tokio::spawn(async move {
-            config_supplier.run(receiver).await;
-        });
-        let (replier, reply_receiver) = tokio::sync::oneshot::channel::<ConfigSupplyResponse>();
-
-        sender
-            .send(ConfigSupplyRequest::Update {
-                stage: TEST_STAGE.to_string(),
-                replier,
-            })
-            .await
-            .unwrap();
-
-        match timeout(Duration::from_secs(1), reply_receiver)
-            .await
-            .unwrap()
-        {
-            Ok(result) => match result {
-                ConfigSupplyResponse::Update { result } => assert!(result.is_ok()),
-                _ => panic!("unexpected result received"),
-            },
-            Err(error) => panic!("failed to receive update result: {}", error),
-        }
-    }
-
-    #[tokio::test]
     pub async fn run_get_config_request_sends_config() {
         let expected_file_bytes: Vec<u8> = vec![];
         let (sender, replier, reply_receiver) = prepare_config_supplier();
@@ -472,6 +425,9 @@ pub mod tests {
         Arc<dyn Packager + Send + Sync>,
     ) {
         let mut mock_downloader = MockDownloader::new();
+        mock_downloader
+            .expect_is_new_version_available()
+            .returning(|_, _| Ok(false));
         mock_downloader.expect_download().returning(|_, _| Ok(()));
         let mut mock_builder = MockConfigBuilder::new();
         mock_builder.expect_build().returning(|_, _, target_path| {
