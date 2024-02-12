@@ -73,21 +73,10 @@ pub async fn main() {
 }
 
 fn get_config() -> Value {
-    let args: Vec<String> = std::env::args().collect();
-
-    if args.len() < 2 {
-        eprintln!("cp-config [configuration file path]");
-        panic!("invalid call, received less arguments than expected");
-    }
-
-    let config_file_path = args
-        .get(1)
-        .expect("failed to get configuration file path from arguments");
-
     let config_reader = ConfigReader::default();
 
     config_reader
-        .read(config_file_path.into())
+        .read("./config/config.yaml".into())
         .expect("failed to read the configuration file")
 }
 
