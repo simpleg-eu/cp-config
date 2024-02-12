@@ -227,16 +227,7 @@ impl ConfigSupplier {
 
     fn setup(&mut self, stage: &str) -> Result<(), Error> {
         let download_path: PathBuf = self.get_download_path();
-        match std::fs::remove_dir_all(&self.working_path) {
-            Ok(_) => (),
-            Err(error) => {
-                log::warn!(
-                    "failed to clean working path '{:?}': {}",
-                    &self.working_path,
-                    error
-                );
-            }
-        }
+        let _ = std::fs::remove_dir_all(&self.working_path);
         match std::fs::create_dir_all(&self.working_path) {
             Ok(_) => (),
             Err(error) => {
