@@ -33,4 +33,4 @@ COPY --from=build /src/bin ./bin
 COPY --from=build /src/target/release/cp-config ./
 RUN apt-get update && \
     apt-get -y install ca-certificates
-ENTRYPOINT ["./cp-config", "/cp-config/config/config.yaml"]
+ENTRYPOINT ["./cp-config"]
