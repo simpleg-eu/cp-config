@@ -47,6 +47,7 @@ pub async fn get_config(
                 return Err((StatusCode::BAD_REQUEST, format!("{}", error)));
             }
 
+            log::warn!("failed to get config: {}", error);
             Err((StatusCode::INTERNAL_SERVER_ERROR, format!("{}", error)))
         }
     }
