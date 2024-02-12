@@ -44,39 +44,10 @@ impl GitDownloader {
     fn pull(&self, target_path: &Path, stage: &str) -> Result<(), Error> {
         let repository = return_error!(Repository::open(target_path));
 
-        self.checkout_branch(&repository, stage)?;
-
         let mut remote = return_error!(repository.find_remote(GIT_REMOTE_NAME));
 
         let fetch_commit = self.fetch(&repository, &[stage], &mut remote)?;
         self.merge(&repository, stage, fetch_commit)?;
-
-        Ok(())
-    }
-
-    fn checkout_branch(&self, repository: &Repository, branch: &str) -> Result<(), Error> {
-        let mut fetch_options = FetchOptions::new();
-        fetch_options.remote_callbacks(self.get_remote_callback());
-
-        return_error!(
-            return_error!(repository.find_remote(GIT_REMOTE_NAME)).fetch(
-                &[format!("refs/heads/*:refs/remotes/{}/*", GIT_REMOTE_NAME)],
-                Some(&mut fetch_options),
-                None,
-            )
-        );
-        let remote_branch_ref = return_error!(
-            repository.find_reference(&format!("refs/remotes/{}/{}", GIT_REMOTE_NAME, branch))
-        );
-
-        let remote_branch_commit = return_error!(remote_branch_ref.peel_to_commit());
-        let local_branch = return_error!(repository.branch(branch, &remote_branch_commit, true));
-
-        let local_branch_commit = return_error!(local_branch.into_reference().peel_to_commit());
-
-        return_error!(repository.checkout_tree(&local_branch_commit.into_object(), None));
-
-        return_error!(repository.set_head(format!("refs/heads/{}", branch).as_str()));
 
         Ok(())
     }
