@@ -6,4 +6,4 @@ services:
     environment:
       - SECRETS_MANAGER_ACCESS_TOKEN=${SECRETS_MANAGER_ACCESS_TOKEN}
     volumes:
-      - /Users/gabriel/Dev/cp-config/config:/cp-config/config # Change to your cp-config root path
+      - ./config:/cp-config/config # Change to your cp-config root path
